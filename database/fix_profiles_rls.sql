@@ -4,24 +4,30 @@
 -- ============================================
 -- Ejecuta este script en el SQL Editor de Supabase Dashboard
 
+-- Primero eliminamos las políticas si ya existen (para evitar errores)
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+DROP POLICY IF EXISTS "Admin can insert profiles" ON profiles;
+DROP POLICY IF EXISTS "Coordination can view all profiles" ON profiles;
+DROP POLICY IF EXISTS "Professionals can view dependency profiles" ON profiles;
+
 -- 1. Política INSERT: Usuarios autenticados pueden crear su propio perfil
-CREATE POLICY IF NOT EXISTS "Users can insert own profile" ON profiles
+CREATE POLICY "Users can insert own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- 2. Política INSERT: Admin puede crear perfiles de otros usuarios
-CREATE POLICY IF NOT EXISTS "Admin can insert profiles" ON profiles
+CREATE POLICY "Admin can insert profiles" ON profiles
   FOR INSERT WITH CHECK (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role_id = 1)
   );
 
 -- 3. Política SELECT: Coordinación y Admin pueden ver todos los perfiles
-CREATE POLICY IF NOT EXISTS "Coordination can view all profiles" ON profiles
+CREATE POLICY "Coordination can view all profiles" ON profiles
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role_id IN (1, 2))
   );
 
 -- 4. Política SELECT: Profesionales pueden ver perfiles de su dependencia
-CREATE POLICY IF NOT EXISTS "Professionals can view dependency profiles" ON profiles
+CREATE POLICY "Professionals can view dependency profiles" ON profiles
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM profiles
@@ -32,6 +38,6 @@ CREATE POLICY IF NOT EXISTS "Professionals can view dependency profiles" ON prof
   );
 
 -- Verificar políticas creadas
-SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check
+SELECT policyname, cmd, qual, with_check
 FROM pg_policies
 WHERE tablename = 'profiles';
