@@ -8,12 +8,13 @@ import { supabase } from "../../../lib/supabase";
 export function AppointmentForm({ onSuccess }) {
   const { createAppointment, isCreating } = useAppointments();
   const [dependencies, setDependencies] = useState([]);
+  const [depsError, setDepsError] = useState(null);
+  const [depsLoading, setDepsLoading] = useState(true);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
   } = useForm({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
@@ -23,11 +24,20 @@ export function AppointmentForm({ onSuccess }) {
     },
   });
 
-  // Cargar dependencias disponibles
   useEffect(() => {
     async function loadDependencies() {
-      const { data } = await supabase.from("dependencies").select("*");
-      setDependencies(data || []);
+      try {
+        setDepsLoading(true);
+        setDepsError(null);
+        const { data, error } = await supabase.from("dependencies").select("*");
+        if (error) throw error;
+        setDependencies(data || []);
+      } catch (err) {
+        console.error("Error cargando dependencias:", err);
+        setDepsError("No se pudieron cargar las dependencias. Intenta de nuevo.");
+      } finally {
+        setDepsLoading(false);
+      }
     }
     loadDependencies();
   }, []);
@@ -39,18 +49,37 @@ export function AppointmentForm({ onSuccess }) {
     }
   };
 
+  if (depsError) {
+    return (
+      <div className="appointment-form">
+        <div className="auth-error">{depsError}</div>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => window.location.reload()}
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="appointment-form">
       <div className="field">
         <label>Dependencia</label>
-        <select {...register("dependency_id", { valueAsNumber: true })}>
-          <option value="">Selecciona...</option>
-          {dependencies.map((dep) => (
-            <option key={dep.id} value={dep.id}>
-              {dep.name}
-            </option>
-          ))}
-        </select>
+        {depsLoading ? (
+          <span className="dependency-loading">Cargando dependencias...</span>
+        ) : (
+          <select {...register("dependency_id")}>
+            <option value="">Selecciona una dependencia...</option>
+            {dependencies.map((dep) => (
+              <option key={dep.id} value={dep.id}>
+                {dep.name}
+              </option>
+            ))}
+          </select>
+        )}
         {errors.dependency_id && (
           <span className="error">{errors.dependency_id.message}</span>
         )}
@@ -92,7 +121,11 @@ export function AppointmentForm({ onSuccess }) {
         )}
       </div>
 
-      <button type="submit" disabled={isCreating} className="btn-primary">
+      <button
+        type="submit"
+        disabled={isCreating || depsLoading}
+        className="btn-primary"
+      >
         {isCreating ? "Agendando..." : "Solicitar Cita"}
       </button>
     </form>

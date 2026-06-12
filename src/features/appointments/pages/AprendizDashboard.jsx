@@ -2,16 +2,27 @@ import { useEffect, useState } from "react";
 import { useAppointments } from "../hooks/useAppointments";
 import { AppointmentForm } from "../components/AppointmentForm";
 import { AppointmentCard } from "../components/AppointmentCard";
-import { Plus } from "lucide-react";
+import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
+import { Plus, CalendarX } from "lucide-react";
+
+const FILTER_OPTIONS = [
+  { value: "", label: "Todas" },
+  { value: "pending", label: "Pendientes" },
+  { value: "confirmed", label: "Confirmadas" },
+  { value: "completed", label: "Completadas" },
+  { value: "cancelled", label: "Canceladas" },
+];
 
 export default function AprendizDashboard() {
   const { appointments, fetchAppointments, cancelAppointment, isLoading } =
     useAppointments();
   const [showForm, setShowForm] = useState(false);
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
+    const filters = filter ? { status: filter } : {};
+    fetchAppointments(filters);
+  }, [filter, fetchAppointments]);
 
   return (
     <div className="dashboard-container">
@@ -23,6 +34,18 @@ export default function AprendizDashboard() {
         </button>
       </header>
 
+      <div className="filter-tabs">
+        {FILTER_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            className={filter === opt.value ? "active" : ""}
+            onClick={() => setFilter(opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {showForm && (
         <div className="modal-overlay" onClick={() => setShowForm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -30,7 +53,7 @@ export default function AprendizDashboard() {
             <AppointmentForm
               onSuccess={() => {
                 setShowForm(false);
-                fetchAppointments();
+                fetchAppointments(filter ? { status: filter } : {});
               }}
             />
           </div>
@@ -39,20 +62,27 @@ export default function AprendizDashboard() {
 
       <section className="appointments-list">
         {isLoading ? (
-          <p>Cargando tus citas...</p>
+          <LoadingSpinner message="Cargando tus citas..." />
         ) : appointments.length === 0 ? (
           <div className="empty-state">
-            <p>No tienes citas agendadas</p>
-            <button onClick={() => setShowForm(true)} className="btn-link">
-              Agenda tu primera cita aquí
-            </button>
+            <CalendarX size={48} color="#9ca3af" />
+            <p>
+              {filter
+                ? `No tienes citas ${FILTER_OPTIONS.find((o) => o.value === filter)?.label?.toLowerCase()}`
+                : "No tienes citas agendadas"}
+            </p>
+            {!filter && (
+              <button onClick={() => setShowForm(true)} className="btn-link">
+                Agenda tu primera cita aquí
+              </button>
+            )}
           </div>
         ) : (
           appointments.map((apt) => (
             <AppointmentCard
               key={apt.id}
               appointment={apt}
-              isAprendiz={true}
+              showCancelButton={apt.status === "pending"}
               onCancel={() => cancelAppointment(apt.id)}
             />
           ))

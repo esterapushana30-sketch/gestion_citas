@@ -1,5 +1,37 @@
 import { supabase } from "../../../lib/supabase";
-import { addDays, isWeekend, format } from "date-fns";
+
+// Helper: Obtener profiles por IDs
+async function fetchProfiles(ids) {
+  if (!ids.length) return {};
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+  if (!uniqueIds.length) return {};
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, document_number")
+    .in("id", uniqueIds);
+
+  if (error) throw error;
+  return (data || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+}
+
+// Helper: Enriquecer citas con datos de profiles
+async function enrichAppointments(appointments) {
+  const profileIds = appointments.flatMap((apt) => [
+    apt.user_id,
+    apt.professional_id,
+  ]).filter(Boolean);
+
+  if (!profileIds.length) return appointments;
+
+  const profilesMap = await fetchProfiles(profileIds);
+
+  return appointments.map((apt) => ({
+    ...apt,
+    profiles: profilesMap[apt.user_id] || null,
+    professional: profilesMap[apt.professional_id] || null,
+  }));
+}
 
 // CLASE Repository: encapsula todo el acceso a datos de citas
 // Principio SOLID: Dependency Inversion (dependemos de abstracciones)
@@ -9,27 +41,21 @@ export class AppointmentRepository {
     const { data, error } = await supabase
       .from("appointments")
       .insert([appointmentData])
-      .select(
-        `
-        *,
-        dependencies (name, color),
-        profiles!professional_id (full_name)
-      `,
-      )
+      .select("*, dependencies (name, color)")
       .single();
 
     if (error) throw new Error(`Error creando cita: ${error.message}`);
-    return data;
+
+    // Enriquecer con profiles
+    const [enriched] = await enrichAppointments([data]);
+    return enriched;
   }
 
   // READ: Obtener citas según filtros (RLS se encarga de seguridad)
   static async fetch({ userId, dependencyId, status, dateFrom, dateTo }) {
-    let query = supabase.from("appointments").select(`
-        *,
-        dependencies (name, color),
-        profiles!user_id (full_name, document_number),
-        professional:profiles!professional_id (full_name)
-      `);
+    let query = supabase
+      .from("appointments")
+      .select("*, dependencies (name, color)");
 
     // Filtros dinámicos
     if (userId) query = query.eq("user_id", userId);
@@ -45,7 +71,9 @@ export class AppointmentRepository {
 
     const { data, error } = await query;
     if (error) throw new Error(`Error fetching citas: ${error.message}`);
-    return data || [];
+
+    // Enriquecer con profiles
+    return enrichAppointments(data || []);
   }
 
   // UPDATE: Actualizar estado o notas
@@ -54,11 +82,13 @@ export class AppointmentRepository {
       .from("appointments")
       .update({ ...updates, updated_at: new Date() })
       .eq("id", id)
-      .select()
+      .select("*, dependencies (name, color)")
       .single();
 
     if (error) throw new Error(`Error actualizando cita: ${error.message}`);
-    return data;
+
+    const [enriched] = await enrichAppointments([data]);
+    return enriched;
   }
 
   // CHECK AVAILABILITY: Verificar si horario está libre

@@ -16,19 +16,20 @@ export function useAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [status, setStatus] = useState(STATUS.IDLE);
   const [error, setError] = useState(null);
-  const { user, profile, isAprendiz } = useAuth();
+  const { user, isAprendiz } = useAuth();
 
   // FETCH: Obtener citas según el rol automáticamente
+  // Los profesionales ven TODAS las citas (acceso global)
   const fetchAppointments = useCallback(
     async (filters = {}) => {
       setStatus(STATUS.FETCHING);
       setError(null);
 
       try {
-        // RBAC implícito: los filtros dependen del rol
+        // RBAC: Aprendiz solo ve sus citas, profesionales ven todas
         const roleFilters = isAprendiz()
           ? { userId: user.id }
-          : { dependencyId: profile.dependency_id };
+          : {};
 
         const data = await AppointmentRepository.fetch({
           ...roleFilters,
@@ -44,7 +45,30 @@ export function useAppointments() {
         setStatus(STATUS.IDLE);
       }
     },
-    [user, profile, isAprendiz],
+    [user, isAprendiz],
+  );
+
+  // FETCH BY DEPENDENCY: Obtener citas de una dependencia específica
+  const fetchAppointmentsByDependency = useCallback(
+    async (dependencyId, filters = {}) => {
+      setStatus(STATUS.FETCHING);
+      setError(null);
+
+      try {
+        const data = await AppointmentRepository.fetch({
+          dependencyId,
+          ...filters,
+        });
+        return data;
+      } catch (err) {
+        setError(err.message);
+        toast.error("Error cargando citas");
+        return [];
+      } finally {
+        setStatus(STATUS.IDLE);
+      }
+    },
+    [],
   );
 
   // CREATE: Crear cita con validaciones de negocio
@@ -142,6 +166,7 @@ export function useAppointments() {
     isLoading: status === STATUS.FETCHING,
     isCreating: status === STATUS.CREATING,
     fetchAppointments,
+    fetchAppointmentsByDependency,
     createAppointment,
     updateStatus,
     cancelAppointment,

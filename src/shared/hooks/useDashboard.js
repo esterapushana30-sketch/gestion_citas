@@ -1,31 +1,30 @@
 import { useState, useCallback } from "react";
-import { DashboardRepository } from "../api/dashboard.repository";
+import { DashboardRepository } from "../../features/dashboard/api/dashboard.repository";
 import { toast } from "sonner";
 import { startOfMonth, endOfMonth, format } from "date-fns";
-import { object, promise } from "zod";
 
 export function useDashboard() {
-    const [Kpis, setKpis] = useState(null);
+    const [kpis, setKpis] = useState(null);
     const [byDependency, setByDependency] = useState([]);
     const [monthlyTrend, setMonthlyTrend] = useState([]);
     const [professionals, setProfessionals] = useState([]);
-    const [loading, setLoading] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    const dateRange = {
+    const getDefaultDateRange = () => ({
         from: format(startOfMonth(new Date()), "yyyy-MM-dd"),
         to: format(endOfMonth(new Date()), "yyyy-MM-dd"),
-    };
+    });
 
     const fetchAllMetrics = useCallback(async(customRange = null) => {
         setLoading(true);
-        const range = customRange || dateRange;
+        const range = customRange || getDefaultDateRange();
 
         try {
-            const [KpisData, depData, trendData, profData] = await promise.all([
+            const [KpisData, depData, trendData, profData] = await Promise.all([
                 DashboardRepository.getKPIs(range),
                 DashboardRepository.getAppointmentsByDependency(range),
                 DashboardRepository.getMonthlyTrend(new Date().getFullYear()),
-                DashboardRepository.getProfessionalPerformace(range),
+                DashboardRepository.getProfessionalPerformance(range),
             ]);
             setKpis(KpisData[0]); // la funcion retorna array con un objeto
             setByDependency(depData);
@@ -42,7 +41,7 @@ export function useDashboard() {
     const exportToCSV = async (range = null) => {
         try {
             const data = await DashboardRepository.getRawDataForExport(
-                range || dateRange,
+                range || getDefaultDateRange(),
             );
 
             //tranformar a formato plano para excel
@@ -51,8 +50,8 @@ export function useDashboard() {
                 Fecha_Cita: row.scheduled_date,
                 Hora: row.scheduled_time,
                 Dependencia: row.dependencies?.name,
-                Aprendiz: row.aprendiz?.name,
-                Documento: row.aprendiz?.Document_number,
+                Aprendiz: row.aprendiz?.full_name,
+                Documento: row.aprendiz?.document_number,
                 Profesional: row.professional?.full_name || "sin asignar",
                 Estado: row.status,
                 Motivo: row.reason,
@@ -60,8 +59,13 @@ export function useDashboard() {
                 Fecha_Creacion: row.created_at,
             }));
 
+            if (flatData.length === 0) {
+                toast.warning("No hay datos para exportar en este rango");
+                return;
+            }
+
             // Crear CSV
-            const headers = object.keys(flatData[0]);
+            const headers = Object.keys(flatData[0]);
             const csv = [
                 headers.join(","),
                 ...flatData.map((row) => 
@@ -77,12 +81,12 @@ export function useDashboard() {
             link.click();
 
             toast.success("Reporte descargado");
-        }catch (err) {
+        }catch {
             toast.error("Error exportando datos");
         }
     };
     return {
-        Kpis,
+        kpis,
         byDependency,
         monthlyTrend,
         professionals,

@@ -12,6 +12,7 @@ export default function Register() {
     document_number: "",
   });
   const [validationError, setValidationError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { signUp, error: authError } = useAuth();
   const navigate = useNavigate();
@@ -35,16 +36,21 @@ export default function Register() {
       return;
     }
 
-    const result = await signUp(formData.email, formData.password, {
-      full_name: formData.full_name,
-      document_number: formData.document_number,
-    });
+    setIsSubmitting(true);
+    try {
+      const result = await signUp(formData.email, formData.password, {
+        full_name: formData.full_name,
+        document_number: formData.document_number,
+      });
 
-    if (result.success) {
-      toast.success(
-        "¡Registro exitoso! Revisa tu email para confirmar la cuenta.",
-      );
-      navigate("/login");
+      if (result.success) {
+        toast.success(
+          "¡Registro exitoso! Revisa tu email para confirmar la cuenta.",
+        );
+        navigate("/login");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -123,8 +129,8 @@ export default function Register() {
             />
           </div>
 
-          <button type="submit" className="btn-primary">
-            Crear cuenta
+          <button type="submit" className="btn-primary" disabled={isSubmitting}>
+            {isSubmitting ? "Creando..." : "Crear cuenta"}
           </button>
         </form>
 

@@ -17,7 +17,7 @@ const STATUS_CONFIG = {
   no_show: { label: "No asistió", color: "#6b7280", icon: XCircle },
 };
 
-export function AppointmentCard({ appointment, onCancel, isAprendiz }) {
+export function AppointmentCard({ appointment, onCancel, showCancelButton = false }) {
   const {
     dependencies,
     scheduled_date,
@@ -26,7 +26,7 @@ export function AppointmentCard({ appointment, onCancel, isAprendiz }) {
     reason,
     profiles,
   } = appointment;
-  const config = STATUS_CONFIG[status];
+  const config = STATUS_CONFIG[status] || { label: status || "Desconocido", color: "#6b7280", icon: AlertCircle };
   const Icon = config.icon;
 
   return (
@@ -60,7 +60,7 @@ export function AppointmentCard({ appointment, onCancel, isAprendiz }) {
 
       <div className="card-body">
         <p className="reason">{reason}</p>
-        {!isAprendiz && profiles && (
+        {profiles?.full_name && (
           <div className="aprendiz-info">
             <User size={14} />
             <span>{profiles.full_name}</span>
@@ -68,7 +68,7 @@ export function AppointmentCard({ appointment, onCancel, isAprendiz }) {
         )}
       </div>
 
-      {isAprendiz && status === "pending" && (
+      {showCancelButton && status === "pending" && (
         <div className="card-actions">
           <button onClick={onCancel} className="btn-danger">
             Cancelar Cita

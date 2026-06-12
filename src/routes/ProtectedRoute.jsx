@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
+import { LoadingSpinner } from "../shared/components/LoadingSpinner";
 
 // Componente reutilizable para proteger rutas
 export function ProtectedRoute({
@@ -7,23 +8,12 @@ export function ProtectedRoute({
   requiredRoles = null, // null = cualquier usuario logueado
   fallback = "/login", // a dónde redirigir si no tiene acceso
 }) {
-  const { user, profile, loading, hasRole } = useAuth();
+  const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
   // 1. Esperar a cargar sesión
   if (loading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-        }}
-      >
-        <p>Cargando sesión...</p>
-      </div>
-    );
+    return <LoadingSpinner message="Cargando sesión..." />;
   }
 
   // 2. No está logueado → Login

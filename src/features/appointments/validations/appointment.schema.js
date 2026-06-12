@@ -3,7 +3,7 @@ import { isWeekend, isPast, addDays, startOfDay } from "date-fns";
 
 // Esquema de validación robusto
 export const appointmentSchema = z.object({
-  dependency_id: z.number().int().positive("Selecciona una dependencia"),
+  dependency_id: z.coerce.number().int().positive("Selecciona una dependencia"),
 
   scheduled_date: z
     .string()
