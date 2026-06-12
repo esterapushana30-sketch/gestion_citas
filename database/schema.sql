@@ -185,9 +185,22 @@ CREATE POLICY "Admin can view all profiles" ON profiles
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role_id = 1)
   );
 
+CREATE POLICY "Users can insert own profile" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Admin can insert profiles" ON profiles
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role_id = 1)
+  );
+
 CREATE POLICY "Admin can update profiles" ON profiles
   FOR UPDATE USING (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role_id = 1)
+  );
+
+CREATE POLICY "Coordination can view all profiles" ON profiles
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role_id IN (1, 2))
   );
 
 -- Políticas para appointments
