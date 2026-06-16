@@ -10,28 +10,39 @@ import {
 } from "recharts";
 
 export function MonthlyTrendChart({ data }) {
+    if (!data || data.length === 0) {
+        return (
+            <div className="chart-container">
+                <h3>Tendencia Anual</h3>
+                <div className="empty-chart">
+                    <p>No hay datos para mostrar</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="chart-container">
             <h3>Tendencia Anual</h3>
             <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={ data}>
+                <LineChart data={data}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
-                    <YAxis/>
-                    <Tooltip/>
-                    <Legend/>
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
                     <Line
-                    type="monotone"
-                    dataKey="total"
-                    stroke="#39A900"
-                    name="Total"
-                    strokeWidth={2}
+                        type="monotone"
+                        dataKey="total"
+                        stroke="#39A900"
+                        name="Total"
+                        strokeWidth={2}
                     />
                     <Line
-                    type="monotone"
-                    dataKey="completed"
-                    stroke="#22c55e"
-                    name="Completadas"
+                        type="monotone"
+                        dataKey="completed"
+                        stroke="#22c55e"
+                        name="Completadas"
                     />
                 </LineChart>
             </ResponsiveContainer>

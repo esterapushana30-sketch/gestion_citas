@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "../../../lib/supabase";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -38,6 +39,20 @@ export default function Register() {
 
     setIsSubmitting(true);
     try {
+      // Verificar si el documento ya existe
+      const { data: existingDoc } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("document_number", formData.document_number)
+        .maybeSingle();
+
+      if (existingDoc) {
+        setValidationError("Ya existe un usuario registrado con ese número de documento");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Registrar usuario (el trigger crea el perfil automáticamente)
       const result = await signUp(formData.email, formData.password, {
         full_name: formData.full_name,
         document_number: formData.document_number,

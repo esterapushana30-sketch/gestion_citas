@@ -109,14 +109,19 @@ export function AuthProvider({ children }) {
     try {
       setError(null);
 
-      // Intentar signUp sin metadata para evitar que el trigger falle
+      // El trigger on_auth_user_created crea el perfil automáticamente
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: userData.full_name,
+            document_number: userData.document_number,
+          },
+        },
       });
 
       if (error) {
-        // Mostrar mensaje más amigable para errores comunes
         if (error.message.includes("Database error")) {
           throw new Error(
             "Error al crear la cuenta. Por favor, contacta al administrador.",
@@ -125,21 +130,6 @@ export function AuthProvider({ children }) {
         throw error;
       }
       if (!data.user) throw new Error("No se pudo crear el usuario");
-
-      // Crear perfil manualmente
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: data.user.id,
-        email: email,
-        full_name: userData.full_name,
-        document_number: userData.document_number,
-        role_id: 6, // APRENDIZ por defecto
-        is_active: true,
-      });
-
-      if (profileError) {
-        console.error("Error creando perfil:", profileError);
-        // No lanzar error aquí, el usuario ya se creó en auth
-      }
 
       return { success: true, data };
     } catch (err) {

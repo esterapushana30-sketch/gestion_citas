@@ -10,6 +10,17 @@ import {
 } from "recharts";
 
 export function DependencyChart({ data }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="chart-container">
+        <h3>Citas por Dependencia</h3>
+        <div className="empty-chart">
+          <p>No hay datos para mostrar</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="chart-container">
       <h3>Citas por Dependencia</h3>
@@ -19,7 +30,7 @@ export function DependencyChart({ data }) {
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip />
-          <Bar dataKey="total" name= "Total">
+          <Bar dataKey="total" name="Total">
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}

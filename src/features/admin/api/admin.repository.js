@@ -76,14 +76,16 @@ export class AdminRepository {
 
     // USUARIOS: Crear nuevo usuario (invitación)
     static async createUser({ email, password, fullName, roleId, dependencyId }, adminId) {
-    // 1. Crear en auth.users sin metadata para evitar trigger
+    // 1. Crear en auth.users (el trigger crea el perfil automáticamente)
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+            data: { full_name: fullName },
+        },
     });
 
     if (authError) {
-        // Mostrar mensaje más amigable para errores comunes
         if (authError.message.includes("Database error")) {
             throw new Error("Error al crear el usuario. Verifica que el email no esté registrado.");
         }
@@ -91,38 +93,22 @@ export class AdminRepository {
     }
     if (!authData.user) throw new Error("No se pudo crear el usuario");
 
-    // 2. Verificar si el perfil ya fue creado por trigger
-    const { data: existingProfile } = await supabase
+    // 2. Esperar un momento para que el trigger cree el perfil
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // 3. Actualizar el perfil creado por el trigger con los datos correctos
+    const { error: updateError } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('id', authData.user.id)
-        .single();
+        .update({
+            full_name: fullName,
+            role_id: roleId,
+            dependency_id: dependencyId,
+        })
+        .eq('id', authData.user.id);
 
-    // 3. Si el perfil no existe, crearlo manualmente
-    if (!existingProfile) {
-        const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-                id: authData.user.id,
-                email: email,
-                full_name: fullName,
-                role_id: roleId,
-                dependency_id: dependencyId,
-                is_active: true,
-            });
+    if (updateError) throw updateError;
 
-        if (insertError) throw insertError;
-    } else {
-        // 4. Si el perfil existe, actualizar rol/dependencia
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ role_id: roleId, dependency_id: dependencyId })
-            .eq('id', authData.user.id);
-
-        if (updateError) throw updateError;
-    }
-
-    // 5. Obtener el perfil completo
+    // 4. Obtener el perfil completo
     const { data: profile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
@@ -131,7 +117,7 @@ export class AdminRepository {
 
     if (fetchError) throw fetchError;
 
-    // 6. Auditar
+    // 5. Auditar
     await this.logAction({
         userId: adminId,
         action: 'CREATE_USER',

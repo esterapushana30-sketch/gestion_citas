@@ -71,28 +71,46 @@ export default function ProfessionalRegister() {
 
     setIsSubmitting(true);
     try {
-      // 1. Registrar usuario en auth
+      // 0. Verificar si el documento ya existe
+      const { data: existingDoc } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("document_number", formData.document_number)
+        .maybeSingle();
+
+      if (existingDoc) {
+        throw new Error("Ya existe un usuario registrado con ese número de documento");
+      }
+
+      // 1. Registrar usuario en auth (el trigger crea el perfil automáticamente)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
+        options: {
+          data: {
+            full_name: formData.full_name,
+            document_number: formData.document_number,
+            phone: formData.phone,
+            profession: formData.profession,
+            specialty: formData.specialty,
+          },
+        },
       });
 
       if (authError) throw authError;
       if (!authData.user) throw new Error("No se pudo crear el usuario");
 
-      // 2. Crear perfil con datos extendidos
-      const roleId = PROFESSION_TO_ROLE[formData.profession] || 3; // PSICOLOGIA por defecto
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: authData.user.id,
-        email: formData.email,
-        full_name: formData.full_name,
-        document_number: formData.document_number,
-        phone: formData.phone,
-        profession: formData.profession,
-        specialty: formData.specialty,
-        role_id: roleId,
-        is_active: true,
-      });
+      // 2. Actualizar el perfil con datos adicionales (el trigger ya creó uno básico)
+      const roleId = PROFESSION_TO_ROLE[formData.profession] || 3;
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          phone: formData.phone,
+          profession: formData.profession,
+          specialty: formData.specialty,
+          role_id: roleId,
+        })
+        .eq("id", authData.user.id);
 
       if (profileError) throw profileError;
 

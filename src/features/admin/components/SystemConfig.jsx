@@ -17,12 +17,18 @@ const DEFAULT_CONFIG = {
 };
 
 export function SystemConfig() {
-  const { config, loading, fetchConfig, updateConfig } = useAdmin();
+  const { config, fetchConfig, updateConfig } = useAdmin();
   const [formData, setFormData] = useState({});
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchConfig();
+    const load = async () => {
+      setLoading(true);
+      await fetchConfig();
+      setLoading(false);
+    };
+    load();
   }, [fetchConfig]);
 
   useEffect(() => {

@@ -365,10 +365,17 @@
   border-left: 3px solid transparent;
 }
 
-.audit-action {
+.audit-bar {
   width: 4px;
   border-radius: 2px;
   flex-shrink: 0;
+}
+
+.audit-action-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .audit-content {
@@ -381,14 +388,6 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
-}
-
-.audit-header .audit-action {
-  width: auto;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
 .audit-time {
@@ -842,6 +841,41 @@
 /* ===========================
    RESPONSIVE
    =========================== */
+
+/* Empty States */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.empty-state svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 0.9rem;
+}
+
+.empty-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+/* Header Actions */
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
 
 /* Actions Menu */
 .actions-cell {
