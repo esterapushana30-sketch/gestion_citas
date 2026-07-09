@@ -60,6 +60,19 @@ export const DEPENDENCIES_CONFIG = {
   },
 };
 
+export const PROFESIONAL_CONFIG = {
+  ENFERMERIA: {
+    name: "Enfermería",
+    route: "/enfermeria",
+    color: "#06b6d4",
+  },
+  TRABAJO_SOCIAL: {
+    name: "Trabajo Social",
+    route: "/trabajo-social",
+    color: "#f97316",
+  },
+};
+
 export function getDependencyConfig(roleName) {
   return DEPENDENCIES_CONFIG[roleName] || DEPENDENCIES_CONFIG.PSICOLOGIA;
 }

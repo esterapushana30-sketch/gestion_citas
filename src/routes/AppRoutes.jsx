@@ -20,9 +20,22 @@ const ForgotPassword = lazy(
 const Unauthorized = lazy(() => import("../shared/components/Unauthorized"));
 const NotFound = lazy(() => import("../shared/components/NotFound"));
 
+  // Privadas - Notificaciones
+const NotificationsPage = lazy(
+  () => import("../features/notifications/pages/NotificationsPage"),
+);
+
 // Privadas - Aprendiz
 const AprendizDashboard = lazy(
   () => import("../features/appointments/pages/AprendizDashboard"),
+);
+
+// Privilegiadas (sin necesidad de especificación de rol)
+const EnfermeriaDashboard = lazy(
+  () => import("../features/appointments/pages/EnfermeriaDashboard"),
+);
+const TrabajoSocialDashboard = lazy(
+  () => import("../features/appointments/pages/TrabajoSocialDashboard"),
 );
 
 // Privadas - Profesional (mismo componente, diferente configuración)
@@ -69,6 +82,18 @@ export function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
+        {/* RUTAS PROTEGIDAS - NOTIFICACIONES */}
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute requiredRoles={["APRENDIZ", "PSICOLOGIA", "ENFERMERIA", "TRABAJO_SOCIAL", "COORDINACION", "SUPERADMIN"]}>
+              <AppLayout>
+                <NotificationsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* RUTAS PROTEGIDAS - APRENDIZ */}
         <Route
           path="/dashboard"
@@ -99,7 +124,7 @@ export function AppRoutes() {
           element={
             <ProtectedRoute requiredRoles="ENFERMERIA">
               <AppLayout>
-                <ProfessionalDashboard />
+                <EnfermeriaDashboard />
               </AppLayout>
             </ProtectedRoute>
           }
@@ -111,7 +136,7 @@ export function AppRoutes() {
           element={
             <ProtectedRoute requiredRoles="TRABAJO_SOCIAL">
               <AppLayout>
-                <ProfessionalDashboard />
+                <TrabajoSocialDashboard />
               </AppLayout>
             </ProtectedRoute>
           }

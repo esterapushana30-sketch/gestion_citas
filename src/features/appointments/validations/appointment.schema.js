@@ -5,6 +5,17 @@ import { isWeekend, isPast, addDays, startOfDay } from "date-fns";
 export const appointmentSchema = z.object({
   dependency_id: z.coerce.number().int().positive("Selecciona una dependencia"),
 
+  ficha_number: z
+    .string()
+    .min(3, "El número de ficha debe tener al menos 3 caracteres")
+    .max(20, "Máximo 20 caracteres")
+    .regex(/^[0-9A-Za-z-]+$/, "Solo números, letras y guiones"),
+
+  programa: z
+    .string()
+    .min(5, "Describe el programa en al menos 5 caracteres")
+    .max(150, "Máximo 150 caracteres"),
+
   scheduled_date: z
     .string()
     .refine((date) => !isWeekend(new Date(date)), {

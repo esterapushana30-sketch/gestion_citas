@@ -1,19 +1,5 @@
 import { supabase } from "../../../lib/supabase";
-
-// Helper: Obtener profiles por IDs
-async function fetchProfiles(ids) {
-  if (!ids.length) return {};
-  const uniqueIds = [...new Set(ids.filter(Boolean))];
-  if (!uniqueIds.length) return {};
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, full_name, email")
-    .in("id", uniqueIds);
-
-  if (error) throw error;
-  return (data || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
-}
+import { fetchProfiles } from "../../../shared/utils/api";
 
 export class AdminRepository {
 
@@ -93,10 +79,23 @@ export class AdminRepository {
     }
     if (!authData.user) throw new Error("No se pudo crear el usuario");
 
-    // 2. Esperar un momento para que el trigger cree el perfil
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // 2. Esperar a que el trigger cree el perfil (polling con reintento)
+    let profileExists = false;
+    for (let attempt = 0; attempt < 5; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        const { data: check } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', authData.user.id)
+            .maybeSingle();
+        if (check) { profileExists = true; break; }
+    }
+    if (!profileExists) {
+        // El trigger podría no existir — crear el perfil manualmente como fallback
+        await supabase.from('profiles').insert({ id: authData.user.id, full_name: fullName });
+    }
 
-    // 3. Actualizar el perfil creado por el trigger con los datos correctos
+    // 3. Actualizar el perfil con los datos correctos
     const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -149,7 +148,7 @@ export class AdminRepository {
 
     // Enriquecer con profiles
     const adminIds = data.map((log) => log.user_id).filter(Boolean);
-    const profilesMap = await fetchProfiles(adminIds);
+    const profilesMap = await fetchProfiles(adminIds, "id, full_name, email");
 
     const enrichedLogs = data.map((log) => ({
         ...log,
@@ -161,44 +160,126 @@ export class AdminRepository {
 
     // Configuración: obtener y actualizar
     static async getConfig() {
-        const { data, error } = await supabase
-        .from('system_config')
-        .select('*');
+        try {
+            const { data, error } = await supabase
+            .from('system_config')
+            .select('key, value');
 
-        if (error) throw error;
-        return data.reduce((acc, item) => ({ ...acc, [item.key]: item.value}), {});
+            if (error) {
+                console.warn('Error cargando config, usando defaults:', error.message);
+                return {};
+            }
+            return (data || []).reduce((acc, item) => ({ ...acc, [item.key]: item.value }), {});
+        } catch (err) {
+            console.warn('getConfig falló, usando defaults:', err.message);
+            return {};
+        }
     }
 
     static async updateConfig(key, value, adminId) {
-        const { data: oldConfig } = await supabase
-        .from('system_config')
-        .select('*')
-        .eq('key', key)
-        .single();
+        // Buscar si ya existe
+        let existing = null;
+        try {
+            const result = await supabase
+            .from('system_config')
+            .select('id, value')
+            .eq('key', key)
+            .maybeSingle();
+            existing = result.data;
+        } catch {
+            // Ignorar errores de SELECT
+        }
 
-        const { data, error } = await supabase
-        .from('system_config')
-        .update({
-            value,
-            update_by: adminId,
-            updated_at: new Date()
-        })
-        .eq('key', key)
-        .select()
-        .single();
+        let result;
+        if (existing) {
+            // Actualizar existente
+            const { data, error } = await supabase
+            .from('system_config')
+            .update({
+                value,
+                updated_by: adminId,
+                updated_at: new Date()
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
 
-        if (error) throw error;
+            if (error) throw error;
+            result = { data, oldData: existing };
+        } else {
+            // Insertar nueva
+            const { data, error } = await supabase
+            .from('system_config')
+            .insert({
+                key,
+                value,
+                updated_by: adminId,
+            })
+            .select()
+            .single();
+
+            if (error) throw error;
+            result = { data, oldData: null };
+        }
 
         await this.logAction({
             userId: adminId,
             action: 'UPDATE_CONFIG',
             entityType: 'config',
             entityId: key,
-            oldData: oldConfig,
-            newData: data
+            oldData: result.oldData,
+            newData: result.data
         });
 
-        return data;
+        return result.data;
+    }
+
+    // CITAS: Obtener todas las citas con filtros (para admin)
+    static async getAppointments({ status, dependencyId, search, page = 1, limit = 20 }) {
+        let query = supabase
+            .from('appointments')
+            .select(`
+                *,
+                dependencies (name, color)
+            `, { count: 'exact' });
+
+        if (status) query = query.eq('status', status);
+        if (dependencyId) query = query.eq('dependency_id', dependencyId);
+        if (search) {
+            query = query.or(`reason.ilike.%${search}%,notes.ilike.%${search}%`);
+        }
+
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        const { data, error, count } = await query
+            .order('scheduled_date', { ascending: false })
+            .order('scheduled_time', { ascending: false })
+            .range(from, to);
+
+        if (error) throw new Error(`Error fetching appointments: ${error.message}`);
+
+        // Enriquecer con profiles (aprendiz y profesional)
+        const profileIds = (data || []).flatMap(d => [d.user_id, d.professional_id]).filter(Boolean);
+        let profilesMap = {};
+        try {
+            profilesMap = await fetchProfiles(profileIds, "id, full_name, document_number");
+        } catch (err) {
+            console.warn("No se pudieron cargar profiles:", err.message);
+        }
+
+        const enriched = (data || []).map(d => ({
+            ...d,
+            aprendiz: profilesMap[d.user_id] || null,
+            professional: profilesMap[d.professional_id] || null,
+        }));
+
+        return {
+            appointments: enriched,
+            total: count,
+            page,
+            totalPages: Math.ceil(count / limit),
+        };
     }
 
     // Helper: Registrar accion en auditoria

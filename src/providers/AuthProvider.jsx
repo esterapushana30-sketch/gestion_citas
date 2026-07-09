@@ -52,30 +52,49 @@ export function AuthProvider({ children }) {
     let mounted = true;
 
     // Verificar sesion existente al cargar la app
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (session?.user) {
-        setUser(session.user);
-        fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    }).catch(() => {
-      if (mounted) setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return;
+        if (session?.user) {
+          setUser(session.user);
+          fetchProfile(session.user.id);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error al obtener sesión:", err);
+        if (mounted) setLoading(false);
+      });
 
     // Suscribirse a cambios de autenticacion
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
-        if (event === "SIGNED_IN" && session?.user) {
-          setUser(session.user);
-          await fetchProfile(session.user.id);
-        } else if (event === "SIGNED_OUT") {
-          setUser(null);
-          setProfile(null);
-        } else if (event === "TOKEN_REFRESHED" && session?.user) {
-          setUser(session.user);
+        console.log("Evento de autenticación:", event);
+
+        switch (event) {
+          case "SIGNED_IN":
+            if (session?.user) {
+              setUser(session.user);
+              await fetchProfile(session.user.id);
+            }
+            break;
+          case "SIGNED_OUT":
+            setUser(null);
+            setProfile(null);
+            break;
+          case "TOKEN_REFRESHED":
+            if (session?.user) {
+              setUser(session.user);
+            }
+            break;
+          case "USER_UPDATED":
+            if (session?.user) {
+              setUser(session.user);
+              await fetchProfile(session.user.id);
+            }
+            break;
         }
 
         // Asegurar que loading se ponga en false en el primer evento
@@ -93,11 +112,31 @@ export function AuthProvider({ children }) {
   const signIn = async (email, password) => {
     try {
       setError(null);
+      
+      // Validación de credenciales antes de intentar
+      if (!email || !password) {
+        throw new Error("El correo electrónico y la contraseña son requeridos");
+      }
+      
+      // Intentar inicio de sesión con Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) throw error;
+      
+      if (error) {
+        // Manejar diferentes tipos de errores
+        if (error.message.includes("Invalid login credentials")) {
+          throw new Error("Correo electrónico o contraseña incorrectos");
+        } else if (error.message.includes("Email not confirmed")) {
+          throw new Error("Por favor, confirma tu correo electrónico antes de iniciar sesión");
+        } else if (error.message.includes("rate limit")) {
+          throw new Error("Demasiados intentos de inicio de sesión. Intenta más tarde");
+        } else {
+          throw new Error(`Error de inicio de sesión: ${error.message}`);
+        }
+      }
+      
       return { success: true, data };
     } catch (err) {
       setError(err.message);

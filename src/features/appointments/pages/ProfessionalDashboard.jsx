@@ -1,18 +1,12 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAppointments } from "../hooks/useAppointments";
 import { useProfessional } from "../hooks/useProfessional";
-import { useDependencyDashboard } from "../hooks/useDependencyDashboard";
 import { AppointmentCard } from "../components/AppointmentCard";
 import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
 import { useAuth } from "../../../providers/AuthProvider";
 import { getDependencyConfig } from "../config/dependencies.config";
-import { KPICard } from "../../dashboard/components/KPICard";
-import { DependencyChart } from "../../dashboard/components/DependencyChart";
-import { MonthlyTrendChart } from "../../dashboard/components/MonthlyTrendChart";
-import { ProfessionalTable } from "../../dashboard/components/ProfessionalTable";
 import {
   CalendarX,
-  Download,
   RefreshCw,
   Calendar,
   Clock,
@@ -20,14 +14,19 @@ import {
   History,
   X,
   Save,
+  CheckCircle,
+  Users,
+  Brain,
+  TrendingUp,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
-import { format, subMonths } from "date-fns";
 import { toast } from "sonner";
 
 const APPOINTMENT_FILTERS = [
-  { value: "pending", label: "Pendientes" },
-  { value: "confirmed", label: "Confirmadas" },
-  { value: "completed", label: "Historial" },
+  { value: "pending", label: "Pendientes", icon: Clock },
+  { value: "confirmed", label: "Confirmadas", icon: CheckCircle },
+  { value: "completed", label: "Historial", icon: History },
 ];
 
 const DAYS_OF_WEEK = [
@@ -41,8 +40,7 @@ const DAYS_OF_WEEK = [
 ];
 
 export default function ProfessionalDashboard() {
-  const { appointments, fetchAppointments, isLoading } =
-    useAppointments();
+  const { appointments, fetchAppointments, isLoading } = useAppointments();
   const {
     confirmAppointment,
     completeAppointment,
@@ -54,32 +52,14 @@ export default function ProfessionalDashboard() {
     history,
     fetchHistory,
   } = useProfessional();
-  const {
-    kpis,
-    byDependency,
-    monthlyTrend,
-    professionals,
-    loading: metricsLoading,
-    fetchAllMetrics,
-    exportToCSV,
-  } = useDependencyDashboard();
   const { profile } = useAuth();
   const [filter, setFilter] = useState("pending");
-  const [dateRange, setDateRange] = useState({
-    from: format(subMonths(new Date(), 1), "yyyy-MM-dd"),
-    to: format(new Date(), "yyyy-MM-dd"),
-  });
-
-  // Estados para modales
   const [showReschedule, setShowReschedule] = useState(null);
   const [showObservations, setShowObservations] = useState(null);
   const [showAvailability, setShowAvailability] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
-  const [rescheduleData, setRescheduleData] = useState({
-    date: "",
-    time: "",
-  });
+  const [rescheduleData, setRescheduleData] = useState({ date: "", time: "" });
   const [observationsData, setObservationsData] = useState("");
   const [availabilityData, setAvailabilityData] = useState([]);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -91,22 +71,47 @@ export default function ProfessionalDashboard() {
 
   const Icon = config.icon;
 
-  // Cargar métricas y citas
-  useEffect(() => {
-    fetchAllMetrics(dateRange);
-  }, [dateRange, fetchAllMetrics]);
+  // Estadísticas profesionales
+  const stats = useMemo(() => {
+    const pendingCount = appointments.filter((a) => a.status === "pending").length;
+    const confirmedCount = appointments.filter((a) => a.status === "confirmed").length;
+    const completedCount = appointments.filter((a) => a.status === "completed").length;
+    const today = new Date().toISOString().split("T")[0];
+    const todayAppointments = appointments.filter((a) => a.scheduled_date === today);
+    const todayCount = todayAppointments.length;
+    const totalCount = appointments.length;
+
+    // Próxima cita
+    const now = new Date();
+    const upcoming = appointments
+      .filter((a) => a.status === "confirmed" || a.status === "pending")
+      .sort((a, b) => {
+        const dateA = new Date(`${a.scheduled_date}T${a.scheduled_time}`);
+        const dateB = new Date(`${b.scheduled_date}T${b.scheduled_time}`);
+        return dateA - dateB;
+      })
+      .find((a) => new Date(`${a.scheduled_date}T${a.scheduled_time}`) > now);
+
+    return {
+      pendingCount,
+      confirmedCount,
+      completedCount,
+      todayCount,
+      totalCount,
+      upcoming,
+      todayAppointments,
+    };
+  }, [appointments]);
 
   useEffect(() => {
     fetchAppointments({ status: filter });
   }, [filter, fetchAppointments]);
 
-  // Cargar disponibilidad cuando se abre el modal
   const loadAvailability = useCallback(async () => {
     const data = await fetchAvailability();
     setAvailabilityData(data);
   }, [fetchAvailability]);
 
-  // Handle availability modal open
   const handleOpenAvailability = () => {
     setShowAvailability(true);
     loadAvailability();
@@ -127,11 +132,6 @@ export default function ProfessionalDashboard() {
     fetchAppointments({ status: filter });
   };
 
-  const handleDateChange = (field, value) => {
-    setDateRange((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // REPROGRAMAR
   const handleReschedule = (appointment) => {
     setShowReschedule(appointment);
     setRescheduleData({
@@ -158,18 +158,14 @@ export default function ProfessionalDashboard() {
     }
   };
 
-  // OBSERVACIONES
   const handleObservations = (appointment) => {
     setShowObservations(appointment);
-    setObservationsData(appointment.observations || "");
+    setObservationsData(appointment.notes || "");
   };
 
   const saveObservations = async () => {
     setIsUpdating(true);
-    const result = await addObservations(
-      showObservations.id,
-      observationsData,
-    );
+    const result = await addObservations(showObservations.id, observationsData);
     setIsUpdating(false);
     if (result.success) {
       setShowObservations(null);
@@ -177,7 +173,6 @@ export default function ProfessionalDashboard() {
     }
   };
 
-  // DISPONIBILIDAD
   const handleAvailabilityChange = (dayIndex, field, value) => {
     setAvailabilityData((prev) => {
       const existing = prev.find((a) => a.day_of_week === dayIndex);
@@ -218,168 +213,196 @@ export default function ProfessionalDashboard() {
     }
   };
 
-  // HISTORIAL
   const handleShowHistory = async () => {
     await fetchHistory();
     setShowHistory(true);
   };
 
+  // Saludo según hora
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Buenos días";
+    if (hour < 18) return "Buenas tardes";
+    return "Buenas noches";
+  };
+
   return (
-    <div className="dependency-dashboard">
-      {/* HEADER CON IDENTIDAD DE LA DEPENDENCIA */}
+    <div className="pro-dashboard">
+      {/* ═══════ HERO HEADER ═══════ */}
       <header
-        className="dependency-header"
-        style={{ borderLeft: `4px solid ${config.color}` }}
+        className="pro-hero"
+        style={{
+          "--dep-color": config.color,
+          "--dep-color-light": config.colorLight || `${config.color}15`,
+        }}
       >
-        <div className="dependency-icon" style={{ background: config.color }}>
-          <Icon size={24} />
-        </div>
-        <div className="dependency-info" style={{ flex: 1 }}>
-          <h1>{config.name}</h1>
-          <p>{config.description}</p>
-        </div>
-        <div className="header-actions">
-          <button onClick={handleShowHistory} className="btn-secondary">
-            <History size={18} />
-            {config.historyLabel}
-          </button>
-          <button
-            onClick={handleOpenAvailability}
-            className="btn-secondary"
-          >
-            <Clock size={18} />
-            {config.availabilityLabel}
-          </button>
-          <button
-            onClick={() => fetchAllMetrics(dateRange)}
-            className="btn-secondary"
-          >
-            <RefreshCw size={18} />
-            Actualizar
-          </button>
-          <button
-            onClick={() => exportToCSV(dateRange)}
-            className="btn-primary"
-          >
-            <Download size={18} />
-            Exportar CSV
-          </button>
+        <div className="pro-hero-bg" />
+        <div className="pro-hero-content">
+          <div className="pro-hero-left">
+            <div className="pro-hero-icon">
+              <Icon size={28} />
+            </div>
+            <div>
+              <p className="pro-hero-greeting">{getGreeting()}</p>
+              <h1 className="pro-hero-title">{config.name}</h1>
+              <p className="pro-hero-subtitle">{config.description}</p>
+            </div>
+          </div>
+          <div className="pro-hero-actions">
+            <button onClick={handleShowHistory} className="pro-btn pro-btn-ghost">
+              <History size={16} />
+              Historial
+            </button>
+            <button onClick={handleOpenAvailability} className="pro-btn pro-btn-ghost">
+              <Clock size={16} />
+              Mi Horario
+            </button>
+            <button
+              onClick={() => fetchAppointments({ status: filter })}
+              className="pro-btn pro-btn-solid"
+            >
+              <RefreshCw size={16} />
+              Actualizar
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* FILTRO DE FECHAS */}
-      <div className="date-filter">
-        <Calendar size={18} />
-        <input
-          type="date"
-          value={dateRange.from}
-          onChange={(e) => handleDateChange("from", e.target.value)}
-        />
-        <span>hasta</span>
-        <input
-          type="date"
-          value={dateRange.to}
-          onChange={(e) => handleDateChange("to", e.target.value)}
-        />
+      {/* ═══════ KPI CARDS ═══════ */}
+      <div className="pro-kpis">
+        <div className="pro-kpi pro-kpi--today" style={{ "--kpi-color": config.color }}>
+          <div className="pro-kpi-icon">
+            <Calendar size={20} />
+          </div>
+          <div className="pro-kpi-data">
+            <span className="pro-kpi-value">{stats.todayCount}</span>
+            <span className="pro-kpi-label">Citas de hoy</span>
+          </div>
+        </div>
+
+        <div className="pro-kpi pro-kpi--pending">
+          <div className="pro-kpi-icon">
+            <Clock size={20} />
+          </div>
+          <div className="pro-kpi-data">
+            <span className="pro-kpi-value">{stats.pendingCount}</span>
+            <span className="pro-kpi-label">Pendientes</span>
+          </div>
+          {stats.pendingCount > 0 && (
+            <span className="pro-kpi-badge">Requieren atención</span>
+          )}
+        </div>
+
+        <div className="pro-kpi pro-kpi--confirmed">
+          <div className="pro-kpi-icon">
+            <CheckCircle size={20} />
+          </div>
+          <div className="pro-kpi-data">
+            <span className="pro-kpi-value">{stats.confirmedCount}</span>
+            <span className="pro-kpi-label">Confirmadas</span>
+          </div>
+        </div>
+
+        <div className="pro-kpi pro-kpi--total">
+          <div className="pro-kpi-icon">
+            <TrendingUp size={20} />
+          </div>
+          <div className="pro-kpi-data">
+            <span className="pro-kpi-value">{stats.totalCount}</span>
+            <span className="pro-kpi-label">Total período</span>
+          </div>
+        </div>
       </div>
 
-      {/* KPIs */}
-      {metricsLoading && !kpis ? (
-        <LoadingSpinner message="Cargando métricas..." />
-      ) : kpis ? (
-        <section className="kpi-grid">
-          <KPICard
-            title="Total Citas"
-            value={kpis.total_appointments}
-            color="#3b82f6"
-            subtitle="En periodo seleccionado"
-          />
-          <KPICard
-            title="Tasa de Cumplimiento"
-            value={`${kpis.total_appointments > 0 ? Math.round((kpis.completed_appointments / kpis.total_appointments) * 100) : 0}%`}
-            color="#22c55e"
-            subtitle={`${kpis.completed_appointments} completadas`}
-          />
-          <KPICard
-            title="Tiempo Promedio Espera"
-            value={`${Math.round(kpis.avg_wait_days || 0)} días`}
-            color="#f59e0b"
-            subtitle="Desde solicitud a atención"
-          />
-          <KPICard
-            title="No Asistencias"
-            value={kpis.no_show_count}
-            color="#ef4444"
-            subtitle={`${kpis.total_appointments > 0 ? Math.round((kpis.no_show_count / kpis.total_appointments) * 100) : 0}% del total`}
-          />
-        </section>
-      ) : null}
+      {/* ═══════ NEXT APPOINTMENT BANNER ═══════ */}
+      {stats.upcoming && (
+        <div className="pro-next-banner" style={{ "--dep-color": config.color }}>
+          <div className="pro-next-icon">
+            <Sparkles size={18} />
+          </div>
+          <div className="pro-next-info">
+            <span className="pro-next-label">Próxima cita</span>
+            <span className="pro-next-detail">
+              {stats.upcoming.profiles?.full_name || "Aprendiz"} —{" "}
+              {stats.upcoming.scheduled_date} a las {stats.upcoming.scheduled_time}
+            </span>
+          </div>
+          <ArrowRight size={18} className="pro-next-arrow" />
+        </div>
+      )}
 
-      {/* GRÁFICAS */}
-      <section className="charts-grid">
-        <DependencyChart data={byDependency} />
-        <MonthlyTrendChart data={monthlyTrend} />
-      </section>
-
-      {/* RANKING DE PROFESIONALES */}
-      <section className="professionals-section">
-        <ProfessionalTable data={professionals} />
-      </section>
-
-      {/* FILTRO DE CITAS */}
-      <nav
-        className="dependency-filter-tabs"
-        style={{ "--dependency-color": config.color }}
-      >
-        {APPOINTMENT_FILTERS.map((opt) => (
-          <button
-            key={opt.value}
-            className={filter === opt.value ? "active" : ""}
-            style={
-              filter === opt.value
-                ? { background: config.color, color: "#fff" }
-                : {}
-            }
-            onClick={() => setFilter(opt.value)}
-          >
-            {opt.label}
-          </button>
-        ))}
+      {/* ═══════ FILTER TABS ═══════ */}
+      <nav className="pro-filters" style={{ "--dep-color": config.color }}>
+        {APPOINTMENT_FILTERS.map((opt) => {
+          const FilterIcon = opt.icon;
+          const count =
+            opt.value === "pending"
+              ? stats.pendingCount
+              : opt.value === "confirmed"
+                ? stats.confirmedCount
+                : stats.completedCount;
+          return (
+            <button
+              key={opt.value}
+              className={`pro-filter-btn ${filter === opt.value ? "active" : ""}`}
+              onClick={() => setFilter(opt.value)}
+            >
+              <FilterIcon size={15} />
+              <span>{opt.label}</span>
+              <span className="pro-filter-count">{count}</span>
+            </button>
+          );
+        })}
       </nav>
 
-      {/* LISTA DE CITAS */}
-      <div className="appointments-grid">
+      {/* ═══════ APPOINTMENTS LIST ═══════ */}
+      <div className="pro-appointments">
         {isLoading ? (
           <LoadingSpinner message="Cargando citas..." />
         ) : appointments.length === 0 ? (
-          <div className="dependency-empty-state">
-            <CalendarX size={48} color="#9ca3af" />
-            <p>{config.emptyStateMessage}</p>
-            <span>{config.emptyStateHint}</span>
+          <div className="pro-empty">
+            <div className="pro-empty-icon">
+              <CalendarX size={40} />
+            </div>
+            <h3>
+              {filter === "pending"
+                ? "Sin citas pendientes"
+                : filter === "confirmed"
+                  ? "Sin citas confirmadas"
+                  : "Sin historial"}
+            </h3>
+            <p>
+              {filter === "pending"
+                ? "No hay nuevas solicitudes de cita en este momento."
+                : filter === "confirmed"
+                  ? "No tienes citas confirmadas para atender."
+                  : "Aún no has completado ninguna atención."}
+            </p>
           </div>
         ) : (
           appointments.map((apt) => (
-            <div key={apt.id} className="appointments-wrapper">
+            <div key={apt.id} className="pro-apt-wrapper">
               <AppointmentCard appointment={apt} showCancelButton={false} />
 
               {filter === "pending" && (
-                <div className="professional-actions">
+                <div className="pro-apt-actions">
                   <button
                     onClick={() => handleConfirm(apt.id)}
-                    className="btn-success"
+                    className="pro-action pro-action--confirm"
                   >
+                    <CheckCircle size={15} />
                     {config.confirmLabel}
                   </button>
                   <button
                     onClick={() => handleReschedule(apt)}
-                    className="btn-secondary"
+                    className="pro-action pro-action--reschedule"
                   >
-                    <Clock size={14} />
+                    <Clock size={15} />
                     {config.rescheduleLabel}
                   </button>
                   <button
                     onClick={() => handleNoshow(apt.id)}
-                    className="btn-danger"
+                    className="pro-action pro-action--noshow"
                   >
                     {config.noShowLabel}
                   </button>
@@ -387,33 +410,32 @@ export default function ProfessionalDashboard() {
               )}
 
               {filter === "confirmed" && (
-                <div className="professional-actions">
+                <div className="pro-apt-actions">
                   <button
-                    onClick={() =>
-                      handleComplete(apt.id, "Atención completada")
-                    }
-                    className="btn-primary"
+                    onClick={() => handleComplete(apt.id, "Atención completada")}
+                    className="pro-action pro-action--complete"
                   >
+                    <CheckCircle size={15} />
                     {config.completeLabel}
                   </button>
                   <button
                     onClick={() => handleObservations(apt)}
-                    className="btn-secondary"
+                    className="pro-action pro-action--notes"
                   >
-                    <FileText size={14} />
-                    {config.addObservationsLabel}
+                    <FileText size={15} />
+                    Observaciones
                   </button>
                 </div>
               )}
 
               {filter === "completed" && (
-                <div className="professional-actions">
+                <div className="pro-apt-actions">
                   <button
                     onClick={() => handleObservations(apt)}
-                    className="btn-secondary"
+                    className="pro-action pro-action--notes"
                   >
-                    <FileText size={14} />
-                    {config.addObservationsLabel}
+                    <FileText size={15} />
+                    Observaciones
                   </button>
                 </div>
               )}
@@ -422,64 +444,52 @@ export default function ProfessionalDashboard() {
         )}
       </div>
 
-      {/* MODAL: REPROGRAMAR */}
+      {/* ═══════ MODAL: REPROGRAMAR ═══════ */}
       {showReschedule && (
-        <div className="modal-overlay" onClick={() => setShowReschedule(null)}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
+        <div className="pro-modal-overlay" onClick={() => setShowReschedule(null)}>
+          <div className="pro-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pro-modal-header">
               <h3>
                 <Clock size={20} />
                 Reprogramar Cita
               </h3>
-              <button onClick={() => setShowReschedule(null)}>
+              <button onClick={() => setShowReschedule(null)} className="pro-modal-close">
                 <X size={20} />
               </button>
             </div>
-            <div className="modal-body">
-              <p>
-                Cita actual: {showReschedule.scheduled_date} a las{" "}
-                {showReschedule.scheduled_time}
+            <div className="pro-modal-body">
+              <p className="pro-modal-context">
+                Cita actual: <strong>{showReschedule.scheduled_date}</strong> a las{" "}
+                <strong>{showReschedule.scheduled_time}</strong>
               </p>
-              <div className="field">
-                <label>Nueva fecha:</label>
+              <div className="pro-form-group">
+                <label>Nueva fecha</label>
                 <input
                   type="date"
                   value={rescheduleData.date}
                   onChange={(e) =>
-                    setRescheduleData((prev) => ({
-                      ...prev,
-                      date: e.target.value,
-                    }))
+                    setRescheduleData((prev) => ({ ...prev, date: e.target.value }))
                   }
                 />
               </div>
-              <div className="field">
-                <label>Nueva hora:</label>
+              <div className="pro-form-group">
+                <label>Nueva hora</label>
                 <input
                   type="time"
                   value={rescheduleData.time}
                   onChange={(e) =>
-                    setRescheduleData((prev) => ({
-                      ...prev,
-                      time: e.target.value,
-                    }))
+                    setRescheduleData((prev) => ({ ...prev, time: e.target.value }))
                   }
                 />
               </div>
             </div>
-            <div className="modal-footer">
-              <button
-                onClick={() => setShowReschedule(null)}
-                className="btn-secondary"
-              >
+            <div className="pro-modal-footer">
+              <button onClick={() => setShowReschedule(null)} className="pro-btn pro-btn-ghost">
                 Cancelar
               </button>
               <button
                 onClick={confirmReschedule}
-                className="btn-primary"
+                className="pro-btn pro-btn-solid"
                 disabled={isUpdating}
               >
                 <Save size={16} />
@@ -490,29 +500,26 @@ export default function ProfessionalDashboard() {
         </div>
       )}
 
-      {/* MODAL: OBSERVACIONES */}
+      {/* ═══════ MODAL: OBSERVACIONES ═══════ */}
       {showObservations && (
-        <div className="modal-overlay" onClick={() => setShowObservations(null)}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
+        <div className="pro-modal-overlay" onClick={() => setShowObservations(null)}>
+          <div className="pro-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pro-modal-header">
               <h3>
                 <FileText size={20} />
                 Observaciones de la Cita
               </h3>
-              <button onClick={() => setShowObservations(null)}>
+              <button onClick={() => setShowObservations(null)} className="pro-modal-close">
                 <X size={20} />
               </button>
             </div>
-            <div className="modal-body">
-              <p>
-                <strong>Fecha:</strong> {showObservations.scheduled_date} -{" "}
+            <div className="pro-modal-body">
+              <p className="pro-modal-context">
+                <strong>Fecha:</strong> {showObservations.scheduled_date} —{" "}
                 {showObservations.scheduled_time}
               </p>
-              <div className="field">
-                <label>Observaciones:</label>
+              <div className="pro-form-group">
+                <label>Observaciones</label>
                 <textarea
                   value={observationsData}
                   onChange={(e) => setObservationsData(e.target.value)}
@@ -521,16 +528,13 @@ export default function ProfessionalDashboard() {
                 />
               </div>
             </div>
-            <div className="modal-footer">
-              <button
-                onClick={() => setShowObservations(null)}
-                className="btn-secondary"
-              >
+            <div className="pro-modal-footer">
+              <button onClick={() => setShowObservations(null)} className="pro-btn pro-btn-ghost">
                 Cancelar
               </button>
               <button
                 onClick={saveObservations}
-                className="btn-primary"
+                className="pro-btn pro-btn-solid"
                 disabled={isUpdating}
               >
                 <Save size={16} />
@@ -541,60 +545,49 @@ export default function ProfessionalDashboard() {
         </div>
       )}
 
-      {/* MODAL: DISPONIBILIDAD */}
+      {/* ═══════ MODAL: DISPONIBILIDAD ═══════ */}
       {showAvailability && (
-        <div className="modal-overlay" onClick={() => setShowAvailability(false)}>
-          <div
-            className="modal-content modal-availability"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
+        <div className="pro-modal-overlay" onClick={() => setShowAvailability(false)}>
+          <div className="pro-modal pro-modal--wide" onClick={(e) => e.stopPropagation()}>
+            <div className="pro-modal-header">
               <h3>
                 <Clock size={20} />
                 Gestionar Disponibilidad
               </h3>
-              <button onClick={() => setShowAvailability(false)}>
+              <button onClick={() => setShowAvailability(false)} className="pro-modal-close">
                 <X size={20} />
               </button>
             </div>
-            <div className="modal-body">
-              <p>
+            <div className="pro-modal-body">
+              <p className="pro-modal-context">
                 Configura tu horario de atención para cada día de la semana.
               </p>
-              <div className="availability-grid">
+              <div className="pro-availability-grid">
                 {DAYS_OF_WEEK.map((day, index) => {
-                  const dayData = availabilityData.find(
-                    (a) => a.day_of_week === index,
-                  );
+                  const dayData = availabilityData.find((a) => a.day_of_week === index);
                   return (
-                    <div key={index} className="availability-day">
-                      <div className="day-header">
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={dayData?.is_available || false}
-                            onChange={(e) =>
-                              handleAvailabilityChange(
-                                index,
-                                "is_available",
-                                e.target.checked,
-                              )
-                            }
-                          />
-                          {day}
-                        </label>
+                    <div
+                      key={index}
+                      className={`pro-avail-day ${dayData?.is_available ? "active" : ""}`}
+                    >
+                      <div className="pro-avail-check">
+                        <input
+                          type="checkbox"
+                          checked={dayData?.is_available || false}
+                          onChange={(e) =>
+                            handleAvailabilityChange(index, "is_available", e.target.checked)
+                          }
+                          id={`day-${index}`}
+                        />
+                        <label htmlFor={`day-${index}`}>{day}</label>
                       </div>
                       {dayData?.is_available && (
-                        <div className="day-hours">
+                        <div className="pro-avail-hours">
                           <input
                             type="time"
                             value={dayData?.start_time || "08:00"}
                             onChange={(e) =>
-                              handleAvailabilityChange(
-                                index,
-                                "start_time",
-                                e.target.value,
-                              )
+                              handleAvailabilityChange(index, "start_time", e.target.value)
                             }
                           />
                           <span>a</span>
@@ -602,11 +595,7 @@ export default function ProfessionalDashboard() {
                             type="time"
                             value={dayData?.end_time || "17:00"}
                             onChange={(e) =>
-                              handleAvailabilityChange(
-                                index,
-                                "end_time",
-                                e.target.value,
-                              )
+                              handleAvailabilityChange(index, "end_time", e.target.value)
                             }
                           />
                         </div>
@@ -616,16 +605,13 @@ export default function ProfessionalDashboard() {
                 })}
               </div>
             </div>
-            <div className="modal-footer">
-              <button
-                onClick={() => setShowAvailability(false)}
-                className="btn-secondary"
-              >
+            <div className="pro-modal-footer">
+              <button onClick={() => setShowAvailability(false)} className="pro-btn pro-btn-ghost">
                 Cancelar
               </button>
               <button
                 onClick={saveAvailability}
-                className="btn-primary"
+                className="pro-btn pro-btn-solid"
                 disabled={isUpdating}
               >
                 <Save size={16} />
@@ -636,28 +622,28 @@ export default function ProfessionalDashboard() {
         </div>
       )}
 
-      {/* MODAL: HISTORIAL */}
+      {/* ═══════ MODAL: HISTORIAL ═══════ */}
       {showHistory && (
-        <div className="modal-overlay" onClick={() => setShowHistory(false)}>
-          <div
-            className="modal-content modal-history"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
+        <div className="pro-modal-overlay" onClick={() => setShowHistory(false)}>
+          <div className="pro-modal pro-modal--wide" onClick={(e) => e.stopPropagation()}>
+            <div className="pro-modal-header">
               <h3>
                 <History size={20} />
                 Historial de Atención
               </h3>
-              <button onClick={() => setShowHistory(false)}>
+              <button onClick={() => setShowHistory(false)} className="pro-modal-close">
                 <X size={20} />
               </button>
             </div>
-            <div className="modal-body">
+            <div className="pro-modal-body">
               {history.length === 0 ? (
-                <p>No hay registros en el historial.</p>
+                <div className="pro-empty" style={{ padding: "2rem" }}>
+                  <CalendarX size={32} color="#9ca3af" />
+                  <p>No hay registros en el historial.</p>
+                </div>
               ) : (
-                <div className="history-table-wrapper">
-                  <table className="history-table">
+                <div className="pro-history-table-wrap">
+                  <table className="pro-history-table">
                     <thead>
                       <tr>
                         <th>Fecha</th>
@@ -674,16 +660,14 @@ export default function ProfessionalDashboard() {
                           <td>{apt.scheduled_time}</td>
                           <td>{apt.profiles?.full_name || "N/A"}</td>
                           <td>
-                            <span
-                              className={`status-badge status-${apt.status}`}
-                            >
+                            <span className={`pro-status pro-status--${apt.status}`}>
                               {apt.status}
                             </span>
                           </td>
                           <td>
-                            {apt.observations
-                              ? apt.observations.substring(0, 50) +
-                                (apt.observations.length > 50 ? "..." : "")
+                            {apt.notes
+                              ? apt.notes.substring(0, 50) +
+                                (apt.notes.length > 50 ? "..." : "")
                               : "—"}
                           </td>
                         </tr>
@@ -693,11 +677,8 @@ export default function ProfessionalDashboard() {
                 </div>
               )}
             </div>
-            <div className="modal-footer">
-              <button
-                onClick={() => setShowHistory(false)}
-                className="btn-secondary"
-              >
+            <div className="pro-modal-footer">
+              <button onClick={() => setShowHistory(false)} className="pro-btn pro-btn-ghost">
                 Cerrar
               </button>
             </div>

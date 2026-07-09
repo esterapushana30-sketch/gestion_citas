@@ -1,0 +1,1219 @@
+/* ===========================
+   RESPONSIVE GLOBAL
+   Breakpoints:
+     - 1024px  (tablet landscape / small desktop)
+     - 768px   (tablet portrait)
+     - 480px   (mobile)
+     - 360px   (small mobile)
+   =========================== */
+
+/* ===========================
+   TABLET LANDSCAPE (<= 1024px)
+   =========================== */
+@media (max-width: 1024px) {
+  /* --- Admin grids: 3 col -> 2 col --- */
+  .roles-grid,
+  .dependencies-grid,
+  .config-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* --- Charts: prevent 400px min from overflowing --- */
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* --- Doc manual selector --- */
+  .doc-manual-selector {
+    grid-template-columns: 1fr;
+  }
+
+  /* --- Coordination: professional table scroll --- */
+  .professionals-section-v2 {
+    overflow-x: auto;
+  }
+}
+
+/* ===========================
+   TABLET PORTRAIT (<= 768px)
+   =========================== */
+@media (max-width: 768px) {
+  /* --- Universal: reduce padding --- */
+  .dashboard-container,
+  .admin-dashboard,
+  .coordination-dashboard,
+  .notifications-page {
+    padding: 1rem;
+  }
+
+  /* --- Admin tabs: horizontal scroll --- */
+  .admin-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+
+  .admin-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  /* --- Admin filters: stack vertically --- */
+  .filters-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .search-box {
+    min-width: auto;
+  }
+
+  .filters-bar select {
+    width: 100%;
+  }
+
+  /* --- Tables: scroll horizontal + compact --- */
+  .admin-table,
+  .professional-table,
+  .history-table {
+    font-size: 0.8rem;
+    min-width: 600px;
+  }
+
+  .admin-table th,
+  .admin-table td,
+  .professional-table th,
+  .professional-table td {
+    padding: 0.6rem 0.5rem;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md);
+  }
+
+  /* --- Pagination: center on mobile --- */
+  .pagination {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  /* --- Audit changes: stack --- */
+  .audit-changes {
+    flex-direction: column;
+  }
+
+  .change-box {
+    min-width: 100%;
+  }
+
+  /* --- Section header: stack on mobile --- */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .section-header .header-actions {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .section-header .header-actions button {
+    flex: 1;
+  }
+
+  /* --- Date filter: wrap --- */
+  .date-filter {
+    flex-wrap: wrap;
+  }
+
+  .coord-date-filter {
+    flex-wrap: wrap;
+    padding: 0.75rem;
+  }
+
+  .date-inputs {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .date-inputs input[type="date"] {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* --- Appointment cards: compact --- */
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .card-datetime {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .professional-actions {
+    flex-wrap: wrap;
+  }
+
+  .professional-actions button {
+    flex: 1;
+    min-width: 100px;
+    justify-content: center;
+  }
+
+  /* --- Modal: full width on tablet --- */
+  .modal-content {
+    margin: 0.75rem;
+    max-height: 92vh;
+  }
+
+  .modal-availability,
+  .modal-history {
+    max-width: 100%;
+  }
+
+  /* --- Availability day: stack --- */
+  .availability-day {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .day-hours {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* --- Auth cards --- */
+  .auth-page {
+    padding: 1rem;
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+
+  .auth-card,
+  .login-card {
+    padding: 1.75rem;
+  }
+
+  .auth-card h1,
+  .login-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .login-logo {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0.75rem;
+  }
+
+  /* --- Notifications --- */
+  .notification-item {
+    padding: 0.875rem;
+  }
+
+  .notification-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* --- Dependencies --- */
+  .dependency-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .dependency-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .dependency-filter-tabs {
+    flex-wrap: wrap;
+  }
+
+  .dependency-filter-tabs button {
+    flex: none;
+    min-width: calc(50% - 0.25rem);
+  }
+
+  /* --- Doc viewer --- */
+  .doc-manual-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .doc-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .doc-item-value {
+    text-align: left;
+  }
+
+  /* --- KPI cards: 2 col on tablet --- */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .kpi-grid-v2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* --- Quick actions grid: 2 col --- */
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* --- Coordination header --- */
+  .coord-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .coord-header-actions {
+    width: 100%;
+  }
+
+  .btn-refresh,
+  .btn-export {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* --- Profile modal --- */
+  .profile-modal-v2 {
+    max-width: 100%;
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+
+  .profile-cover {
+    padding: 1.25rem;
+    padding-bottom: 2.5rem;
+  }
+
+  .profile-avatar-v2 {
+    width: 80px;
+    height: 80px;
+    font-size: 1.75rem;
+  }
+
+  .profile-name-v2 {
+    font-size: 1.2rem;
+  }
+
+  /* --- Buttons: slightly smaller --- */
+  .btn-primary,
+  .btn-secondary,
+  .btn-success,
+  .btn-danger {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  /* --- Stat cards --- */
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+}
+
+/* ===========================
+   MOBILE (<= 480px)
+   =========================== */
+@media (max-width: 480px) {
+  /* --- Universal --- */
+  .dashboard-container,
+  .admin-dashboard,
+  .coordination-dashboard,
+  .notifications-page {
+    padding: 0.75rem;
+  }
+
+  /* --- Headers: smaller font --- */
+  .dashboard-header h1,
+  .admin-header h1,
+  .coord-header-text h1 {
+    font-size: 1.25rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    padding: 1.25rem;
+  }
+
+  .header-text h1 {
+    font-size: 1.25rem;
+  }
+
+  /* --- Buttons: full width on mobile --- */
+  .btn-primary,
+  .btn-secondary,
+  .btn-success,
+  .btn-danger {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .btn-link {
+    font-size: 0.8rem;
+  }
+
+  /* --- Coordination: stack header actions --- */
+  .coord-header-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .btn-refresh,
+  .btn-export {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  /* --- Date filter: stack inputs --- */
+  .coord-date-filter {
+    padding: 0.625rem;
+  }
+
+  .date-icon {
+    display: none;
+  }
+
+  .date-inputs {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .date-separator {
+    display: none;
+  }
+
+  .date-inputs input[type="date"] {
+    width: 100%;
+    padding: 0.625rem;
+  }
+
+  /* --- KPIs: single column --- */
+  .kpi-grid,
+  .kpi-grid-v2 {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-card,
+  .kpi-card-v2 {
+    padding: 1rem;
+  }
+
+  .kpi-icon-v2 {
+    width: 32px;
+    height: 32px;
+  }
+
+  .kpi-icon-v2 svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .kpi-value,
+  .kpi-value-v2 {
+    font-size: 1.35rem;
+  }
+
+  .kpi-title-v2 {
+    font-size: 0.7rem;
+  }
+
+  /* --- Actions grid: single column --- */
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-card {
+    padding: 1rem;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+
+  /* --- Roles / Dependencies / Config grids: single column --- */
+  .roles-grid,
+  .dependencies-grid,
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* --- Admin tabs: smaller --- */
+  .admin-tab {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  /* --- Tables: smaller font --- */
+  .admin-table,
+  .professional-table {
+    font-size: 0.75rem;
+    min-width: 500px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 0.5rem;
+  }
+
+  .user-cell .email {
+    display: none;
+  }
+
+  /* --- Audit items --- */
+  .audit-item {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .audit-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  /* --- Status badges --- */
+  .role-badge {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .status-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+  }
+
+  /* --- Filter tabs: smaller --- */
+  .filter-tab {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.75rem;
+  }
+
+  .filter-tabs button {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  /* --- Empty states --- */
+  .empty-appointments {
+    padding: 2rem 1rem;
+  }
+
+  .empty-icon-wrapper {
+    width: 72px;
+    height: 72px;
+  }
+
+  .empty-icon-wrapper svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .empty-appointments h3 {
+    font-size: 1rem;
+  }
+
+  .empty-appointments p {
+    font-size: 0.85rem;
+  }
+
+  /* --- Modal: near full screen --- */
+  .modal-content {
+    margin: 0.5rem;
+    max-height: 95vh;
+    border-radius: var(--radius-md);
+  }
+
+  .modal-content h2 {
+    font-size: 1.1rem;
+  }
+
+  .modal-header {
+    padding: 1rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .modal-footer {
+    padding: 1rem;
+    flex-direction: column;
+  }
+
+  .modal-footer button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* --- Appointment Form Modal --- */
+  .appointment-form {
+    gap: 0.75rem;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .field label {
+    font-size: 0.8rem;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .field textarea {
+    min-height: 80px;
+  }
+
+  .appointment-form .btn-primary {
+    width: 100%;
+    justify-content: center;
+    padding: 0.875rem;
+    font-size: 0.95rem;
+  }
+
+  .modal-content h2 {
+    font-size: 1.1rem;
+  }
+
+  .modal-header {
+    padding: 1rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .modal-footer {
+    padding: 1rem;
+    flex-direction: column;
+  }
+
+  .modal-footer button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* --- Auth: compact --- */
+  .auth-page {
+    padding: 0.75rem;
+    padding-top: 1.5rem;
+    background: var(--sena-white);
+  }
+
+  .auth-card,
+  .login-card {
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .auth-card h1,
+  .login-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .login-logo {
+    width: 52px;
+    height: 52px;
+  }
+
+  .login-logo svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .login-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .auth-form,
+  .login-form {
+    gap: 0.875rem;
+  }
+
+  .input-group label {
+    font-size: 0.8rem;
+  }
+
+  .input-wrapper {
+    padding: 0 0.875rem;
+  }
+
+  .input-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 0.625rem;
+  }
+
+  .input-wrapper input {
+    padding: 0.7rem 0;
+    font-size: 0.875rem;
+  }
+
+  .btn-login,
+  .auth-form .btn-primary {
+    padding: 0.875rem;
+    font-size: 0.9rem;
+  }
+
+  .auth-footer,
+  .register-text {
+    font-size: 0.8rem;
+    margin-top: 1.25rem;
+  }
+
+  .professional-link {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  /* --- Not Found --- */
+  .not-found-code {
+    font-size: 3.5rem;
+  }
+
+  .not-found-content h1 {
+    font-size: 1.1rem;
+  }
+
+  .not-found-content p {
+    font-size: 0.85rem;
+  }
+
+  .not-found-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .not-found-actions .btn-primary,
+  .not-found-actions .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* --- Notifications: compact --- */
+  .notifications-header h1 {
+    font-size: 1.15rem;
+  }
+
+  .notification-title {
+    font-size: 0.85rem;
+  }
+
+  .notification-message {
+    font-size: 0.8rem;
+  }
+
+  .empty-notifications {
+    padding: 2.5rem 1rem;
+  }
+
+  /* --- Dependencies: compact --- */
+  .dependency-dashboard {
+    gap: var(--space-md);
+  }
+
+  .dependency-header {
+    padding: var(--space-md);
+  }
+
+  .dependency-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .dependency-info h1 {
+    font-size: 1.25rem;
+  }
+
+  .dependency-info p {
+    font-size: 0.8rem;
+  }
+
+  .dependency-stat-card {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .dependency-stat-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .dependency-stat-value {
+    font-size: 1.25rem;
+  }
+
+  /* --- Profile: full screen on mobile --- */
+  .profile-modal-v2 {
+    margin: 0;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .profile-cover {
+    padding: 1rem;
+    padding-bottom: 2rem;
+  }
+
+  .close-btn {
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 32px;
+    height: 32px;
+  }
+
+  .profile-avatar-v2 {
+    width: 72px;
+    height: 72px;
+    font-size: 1.5rem;
+    border-width: 3px;
+  }
+
+  .camera-btn {
+    width: 28px;
+    height: 28px;
+    left: calc(50% + 24px);
+  }
+
+  .profile-name-v2 {
+    font-size: 1.1rem;
+  }
+
+  .role-badge-v2 {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.625rem;
+  }
+
+  .profile-content-v2 {
+    padding: 0 1rem 1rem;
+  }
+
+  .section-title-v2 {
+    font-size: 0.65rem;
+  }
+
+  .info-card-v2 {
+    padding: 0.375rem;
+  }
+
+  .info-row-v2 {
+    padding: 0.625rem 0.5rem;
+    gap: 0.625rem;
+  }
+
+  .info-icon-v2 {
+    width: 32px;
+    height: 32px;
+  }
+
+  .info-icon-v2 svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .info-label-v2 {
+    font-size: 0.65rem;
+  }
+
+  .info-value-v2 {
+    font-size: 0.8rem;
+  }
+
+  .profile-footer-v2 {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+
+  .edit-profile-btn,
+  .logout-btn-v2 {
+    width: 100%;
+    padding: 0.875rem;
+  }
+
+  .form-actions-v2 {
+    flex-direction: column;
+  }
+
+  .btn-cancel-v2,
+  .btn-save-v2 {
+    width: 100%;
+    padding: 0.875rem;
+  }
+
+  /* --- Aprendiz dashboard: compact --- */
+  .aprendiz-dashboard {
+    padding: 0.75rem;
+    padding-bottom: 5rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    padding: 1.25rem;
+  }
+
+  .header-text h1 {
+    font-size: 1.15rem;
+  }
+
+  .btn-new-appointment {
+    width: 100%;
+    justify-content: center;
+    padding: 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  .filters-wrapper {
+    padding: 0.4rem 0.75rem;
+  }
+
+  .filter-tab {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  /* --- Empty state: compact --- */
+  .empty-appointments {
+    padding: 2rem 1rem;
+  }
+
+  .empty-icon-wrapper {
+    width: 72px;
+    height: 72px;
+  }
+
+  .empty-icon-wrapper svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .empty-appointments h3 {
+    font-size: 1rem;
+  }
+
+  .empty-appointments p {
+    font-size: 0.85rem;
+  }
+
+  .btn-cta {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+  }
+
+  /* --- Dependency filter tabs: 1 col on mobile --- */
+  .dependency-filter-tabs button {
+    min-width: 100%;
+  }
+
+  /* --- Appointments: compact --- */
+  .appointment-card {
+    padding: 1rem;
+  }
+
+  .card-body .reason {
+    font-size: 0.8rem;
+  }
+
+  .aprendiz-info {
+    font-size: 0.8rem;
+  }
+
+  /* --- Document number display --- */
+  .doc-item-label {
+    min-width: auto;
+  }
+}
+
+/* ===========================
+   SMALL MOBILE (<= 360px)
+   =========================== */
+@media (max-width: 360px) {
+  .auth-card,
+  .login-card {
+    padding: 1.25rem;
+  }
+
+  .auth-card h1,
+  .login-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .login-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .login-logo svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .input-wrapper input {
+    padding: 0.6rem 0;
+    font-size: 0.8rem;
+  }
+
+  .btn-login,
+  .auth-form .btn-primary {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .kpi-value,
+  .kpi-value-v2 {
+    font-size: 1.15rem;
+  }
+
+  .dependency-info h1 {
+    font-size: 1.1rem;
+  }
+
+  .dependency-stat-value {
+    font-size: 1.1rem;
+  }
+
+  .header-text h1 {
+    font-size: 1.05rem;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+  }
+
+  .filter-tab {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.65rem;
+  }
+}
+
+/* ===========================
+   TOUCH TARGETS (global)
+   Minimum 44x44px for accessibility
+   =========================== */
+@media (pointer: coarse) {
+  /* Buttons */
+  .btn-primary,
+  .btn-secondary,
+  .btn-success,
+  .btn-danger,
+  .btn-login,
+  .btn-cta,
+  .btn-new-appointment,
+  .btn-refresh,
+  .btn-export,
+  .btn-mark-read,
+  .edit-profile-btn,
+  .logout-btn-v2 {
+    min-height: 44px;
+  }
+
+  /* Nav items */
+  .sidebar-link {
+    min-height: 44px;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .bottom-nav-item {
+    min-height: 44px;
+  }
+
+  /* Filter tabs */
+  .filter-tab {
+    min-height: 40px;
+    padding: 0.5rem 0.875rem;
+  }
+
+  .admin-tab {
+    min-height: 40px;
+  }
+
+  /* Form inputs */
+  .input-wrapper input,
+  .field input,
+  .field select,
+  .field textarea {
+    min-height: 44px;
+  }
+
+  /* Toggles */
+  .toggle-btn {
+    min-width: 44px;
+    min-height: 24px;
+  }
+
+  .status-toggle {
+    min-height: 36px;
+    padding: 0.35rem 0.75rem;
+  }
+
+  /* Close buttons */
+  .modal-close,
+  .close-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Pagination */
+  .page-controls button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* Quick action items */
+  .quick-action-item {
+    min-height: 52px;
+  }
+
+  /* Dependency filter buttons */
+  .dependency-filter-tabs button {
+    min-height: 42px;
+  }
+
+  /* Notification items */
+  .notification-item {
+    min-height: 56px;
+  }
+
+  /* Action cells */
+  .actions-dropdown button {
+    min-height: 40px;
+  }
+}
+
+/* ===========================
+   LANDSCAPE MOBILE
+   =========================== */
+@media (max-height: 500px) and (orientation: landscape) {
+  .auth-page {
+    padding: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .auth-card,
+  .login-card {
+    padding: 1rem;
+    max-height: none;
+  }
+
+  .login-header {
+    margin-bottom: 1rem;
+  }
+
+  .login-logo {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 0.5rem;
+  }
+
+  .login-logo svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .login-header h2 {
+    font-size: 1rem;
+  }
+
+  .auth-form,
+  .login-form {
+    gap: 0.625rem;
+  }
+
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .modal-content {
+    max-height: 95vh;
+  }
+}
+
+/* ===========================
+   REDUCED MOTION
+   =========================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ===========================
+   PRINT STYLES
+   =========================== */
+@media print {
+  .app-sidebar,
+  .bottom-nav,
+  .modal-overlay,
+  .notification-btn {
+    display: none !important;
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+  }
+
+  .dashboard-container,
+  .admin-dashboard,
+  .coordination-dashboard {
+    padding: 0 !important;
+  }
+}

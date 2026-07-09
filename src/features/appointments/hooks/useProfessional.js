@@ -9,6 +9,22 @@ const STATUS = {
   UPDATING: "updating",
 };
 
+async function enrichWithProfiles(data) {
+  if (!data || data.length === 0) return data;
+  const ids = [...new Set(data.flatMap((d) => [d.user_id, d.professional_id]).filter(Boolean))];
+  if (ids.length === 0) return data;
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, document_number, email, phone")
+    .in("id", ids);
+  const map = (profiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+  return data.map((d) => ({
+    ...d,
+    profiles: map[d.user_id] || null,
+    professional: map[d.professional_id] || null,
+  }));
+}
+
 export function useProfessional() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState([]);
@@ -25,11 +41,7 @@ export function useProfessional() {
     try {
       let query = supabase
         .from("appointments")
-        .select(`
-          *,
-          dependencies (name, color),
-          profiles!user_id (full_name, document_number, email, phone)
-        `)
+        .select("*, dependencies (name, color)")
         .order("scheduled_date", { ascending: true })
         .order("scheduled_time", { ascending: true });
 
@@ -39,8 +51,9 @@ export function useProfessional() {
       const { data, error } = await query;
       if (error) throw error;
 
-      setAppointments(data || []);
-      return data || [];
+      const enriched = await enrichWithProfiles(data);
+      setAppointments(enriched || []);
+      return enriched || [];
     } catch (err) {
       setError(err.message);
       toast.error("Error cargando citas");
@@ -58,18 +71,15 @@ export function useProfessional() {
     try {
       const { data, error } = await supabase
         .from("appointments")
-        .select(`
-          *,
-          dependencies (name, color),
-          profiles!user_id (full_name, document_number, email)
-        `)
+        .select("*, dependencies (name, color)")
         .in("status", ["completed", "cancelled", "no_show"])
         .order("scheduled_date", { ascending: false });
 
       if (error) throw error;
 
-      setHistory(data || []);
-      return data || [];
+      const enriched = await enrichWithProfiles(data);
+      setHistory(enriched || []);
+      return enriched || [];
     } catch (err) {
       setError(err.message);
       toast.error("Error cargando historial");
@@ -231,7 +241,7 @@ export function useProfessional() {
       const { error } = await supabase
         .from("appointments")
         .update({
-          observations,
+          notes: observations,
           updated_at: new Date().toISOString(),
         })
         .eq("id", appointmentId);
@@ -240,7 +250,7 @@ export function useProfessional() {
 
       setAppointments((prev) =>
         prev.map((apt) =>
-          apt.id === appointmentId ? { ...apt, observations } : apt,
+          apt.id === appointmentId ? { ...apt, notes: observations } : apt,
         ),
       );
 

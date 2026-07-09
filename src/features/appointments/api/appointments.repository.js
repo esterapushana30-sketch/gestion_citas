@@ -1,19 +1,5 @@
 import { supabase } from "../../../lib/supabase";
-
-// Helper: Obtener profiles por IDs
-async function fetchProfiles(ids) {
-  if (!ids.length) return {};
-  const uniqueIds = [...new Set(ids.filter(Boolean))];
-  if (!uniqueIds.length) return {};
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, full_name, document_number")
-    .in("id", uniqueIds);
-
-  if (error) throw error;
-  return (data || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
-}
+import { fetchProfiles } from "../../../shared/utils/api";
 
 // Helper: Enriquecer citas con datos de profiles
 async function enrichAppointments(appointments) {
@@ -36,11 +22,27 @@ async function enrichAppointments(appointments) {
 // CLASE Repository: encapsula todo el acceso a datos de citas
 // Principio SOLID: Dependency Inversion (dependemos de abstracciones)
 export class AppointmentRepository {
-  // CREATE: Crear nueva cita
+  // CREATE: Crear nueva cita (con auto-asignación de profesional)
   static async create(appointmentData) {
+    const { dependency_id, scheduled_date, scheduled_time } = appointmentData;
+    let professional_id = appointmentData.professional_id || null;
+
+    // Auto-asignar profesional si no se especifica uno
+    if (!professional_id && dependency_id && scheduled_date && scheduled_time) {
+      const available = await AppointmentRepository.getAvailableProfessionals(
+        dependency_id,
+        scheduled_date,
+        scheduled_time,
+      );
+      if (available.length > 0) {
+        // Asignar el primero disponible
+        professional_id = available[0].id;
+      }
+    }
+
     const { data, error } = await supabase
       .from("appointments")
-      .insert([appointmentData])
+      .insert([{ ...appointmentData, professional_id }])
       .select("*, dependencies (name, color)")
       .single();
 
@@ -118,5 +120,71 @@ export class AppointmentRepository {
 
     if (error) throw error;
     return count;
+  }
+
+  // CHECK PROFESSIONAL AVAILABILITY: Verificar si hay profesional disponible
+  // Retorna true si al menos un profesional de la dependencia está disponible
+  static async checkProfessionalAvailability(dependencyId, date, time) {
+    // Obtener profesionales de la dependencia
+    const { data: professionals, error: profError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("dependency_id", dependencyId)
+      .eq("is_active", true)
+      .not("role_id", "is", null);
+
+    if (profError) throw profError;
+    if (!professionals || professionals.length === 0) return { available: false, professionals: [] };
+
+    const profIds = professionals.map((p) => p.id);
+
+    // Obtener profesionales que ya tienen citas en ese horario
+    const { data: busyProfessionals, error: busyError } = await supabase
+      .from("appointments")
+      .select("professional_id")
+      .eq("dependency_id", dependencyId)
+      .eq("scheduled_date", date)
+      .eq("scheduled_time", time)
+      .in("status", ["pending", "confirmed"])
+      .in("professional_id", profIds);
+
+    if (busyError) throw busyError;
+
+    const busyIds = new Set((busyProfessionals || []).map((bp) => bp.professional_id));
+    const availableProfessionals = profIds.filter((id) => !busyIds.has(id));
+
+    return {
+      available: availableProfessionals.length > 0,
+      professionalCount: availableProfessionals.length,
+    };
+  }
+
+  // GET AVAILABLE PROFESSIONALS: Obtener profesionales disponibles para un horario
+  static async getAvailableProfessionals(dependencyId, date, time) {
+    const { data: professionals, error: profError } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("dependency_id", dependencyId)
+      .eq("is_active", true)
+      .not("role_id", "is", null);
+
+    if (profError) throw profError;
+    if (!professionals || professionals.length === 0) return [];
+
+    const profIds = professionals.map((p) => p.id);
+
+    const { data: busyProfessionals, error: busyError } = await supabase
+      .from("appointments")
+      .select("professional_id")
+      .eq("dependency_id", dependencyId)
+      .eq("scheduled_date", date)
+      .eq("scheduled_time", time)
+      .in("status", ["pending", "confirmed"])
+      .in("professional_id", profIds);
+
+    if (busyError) throw busyError;
+
+    const busyIds = new Set((busyProfessionals || []).map((bp) => bp.professional_id));
+    return professionals.filter((p) => !busyIds.has(p.id));
   }
 }

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
+import { Mail, Lock, User, FileText, Phone, Briefcase, ArrowRight, Heart, Shield, Users, Calendar } from "lucide-react";
 
 const PROFESSIONS = [
   "Psicólogo/a",
@@ -24,9 +25,9 @@ const SPECIALTIES = {
 };
 
 const PROFESSION_TO_ROLE = {
-  "Psicólogo/a": 3,      // PSICOLOGIA
-  "Enfermero/a": 4,      // ENFERMERIA
-  "Trabajador/a Social": 5, // TRABAJO_SOCIAL
+  "Psicólogo/a": 3,
+  "Enfermero/a": 4,
+  "Trabajador/a Social": 5,
 };
 
 export default function ProfessionalRegister() {
@@ -55,6 +56,15 @@ export default function ProfessionalRegister() {
     return SPECIALTIES[formData.profession] || SPECIALTIES.default;
   };
 
+  const getRoleName = (profession) => {
+    const roleMap = {
+      "Psicólogo/a": "PSICOLOGIA",
+      "Enfermero/a": "ENFERMERIA",
+      "Trabajador/a Social": "TRABAJO_SOCIAL",
+    };
+    return roleMap[profession] || "PSICOLOGIA";
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setValidationError("");
@@ -71,7 +81,6 @@ export default function ProfessionalRegister() {
 
     setIsSubmitting(true);
     try {
-      // 0. Verificar si el documento ya existe
       const { data: existingDoc } = await supabase
         .from("profiles")
         .select("id")
@@ -82,7 +91,6 @@ export default function ProfessionalRegister() {
         throw new Error("Ya existe un usuario registrado con ese número de documento");
       }
 
-      // 1. Registrar usuario en auth (el trigger crea el perfil automáticamente)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -100,7 +108,6 @@ export default function ProfessionalRegister() {
       if (authError) throw authError;
       if (!authData.user) throw new Error("No se pudo crear el usuario");
 
-      // 2. Actualizar el perfil con datos adicionales (el trigger ya creó uno básico)
       const roleId = PROFESSION_TO_ROLE[formData.profession] || 3;
       const { error: profileError } = await supabase
         .from("profiles")
@@ -109,6 +116,10 @@ export default function ProfessionalRegister() {
           profession: formData.profession,
           specialty: formData.specialty,
           role_id: roleId,
+          roles: {
+            name: getRoleName(formData.profession),
+            label: formData.profession,
+          },
         })
         .eq("id", authData.user.id);
 
@@ -128,144 +139,232 @@ export default function ProfessionalRegister() {
   const errorMessage = validationError || authError;
 
   return (
-    <div className="auth-page">
-      <div className="auth-card professional-register">
-        <h1>Registro de Profesional</h1>
-        <p className="auth-subtitle">
-          SENA Bienestar — Crea tu cuenta de profesional
-        </p>
-
-        {errorMessage && <div className="auth-error">{errorMessage}</div>}
-
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="field">
-            <label htmlFor="prof-fullname">Nombre completo *</label>
-            <input
-              id="prof-fullname"
-              type="text"
-              name="full_name"
-              value={formData.full_name}
-              onChange={handleChange}
-              required
-              placeholder="Ej: Juan Pérez García"
-            />
-          </div>
-
-          <div className="field-row">
-            <div className="field">
-              <label htmlFor="prof-document">Documento de identidad *</label>
-              <input
-                id="prof-document"
-                type="text"
-                name="document_number"
-                value={formData.document_number}
-                onChange={handleChange}
-                required
-                placeholder="Ej: 1234567890"
-              />
+    <div className="auth-page-pro">
+      <div className="auth-container-pro">
+        {/* Lado izquierdo - Branding */}
+        <div className="auth-brand-pro">
+          <div className="auth-brand-content">
+            <div className="auth-logo-pro">
+              <Heart size={40} strokeWidth={2} />
             </div>
+            <h1 className="auth-brand-title">SENA Bienestar</h1>
+            <p className="auth-brand-subtitle">
+              Únete como profesional y brinda atención de bienestar
+            </p>
 
-            <div className="field">
-              <label htmlFor="prof-phone">Teléfono</label>
-              <input
-                id="prof-phone"
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="Ej: 300 123 4567"
-              />
+            <div className="auth-features-pro">
+              <div className="auth-feature-pro">
+                <div className="auth-feature-icon-pro">
+                  <Shield size={20} />
+                </div>
+                <div className="auth-feature-text-pro">
+                  <span className="auth-feature-title-pro">Cuenta Verificada</span>
+                  <span className="auth-feature-desc-pro">Rol de profesional asignado</span>
+                </div>
+              </div>
+
+              <div className="auth-feature-pro">
+                <div className="auth-feature-icon-pro">
+                  <Users size={20} />
+                </div>
+                <div className="auth-feature-text-pro">
+                  <span className="auth-feature-title-pro">Gestión de Citas</span>
+                  <span className="auth-feature-desc-pro">Administra tu agenda</span>
+                </div>
+              </div>
+
+              <div className="auth-feature-pro">
+                <div className="auth-feature-icon-pro">
+                  <Calendar size={20} />
+                </div>
+                <div className="auth-feature-text-pro">
+                  <span className="auth-feature-title-pro">Historial</span>
+                  <span className="auth-feature-desc-pro">Registro de atención</span>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="field">
-            <label htmlFor="prof-email">Correo institucional *</label>
-            <input
-              id="prof-email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              placeholder="tu.email@sena.edu.co"
-            />
+        {/* Lado derecho - Formulario */}
+        <div className="auth-form-side-pro">
+          <div className="auth-card-pro" style={{ maxWidth: '480px' }}>
+            <div className="auth-card-header">
+              <h2>Registro Profesional</h2>
+              <p>Crea tu cuenta de profesional en SENA Bienestar</p>
+            </div>
+
+            {errorMessage && (
+              <div className="auth-error-pro">
+                <span className="error-icon-pro">!</span>
+                {errorMessage}
+              </div>
+            )}
+
+            <form className="auth-form-pro" onSubmit={handleSubmit}>
+              <div className="field-pro">
+                <label htmlFor="prof-fullname">Nombre completo *</label>
+                <div className="input-wrapper-pro">
+                  <User size={18} className="input-icon-pro" />
+                  <input
+                    id="prof-fullname"
+                    type="text"
+                    name="full_name"
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    placeholder="Ej: Juan Pérez García"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="field-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="field-pro">
+                  <label htmlFor="prof-document">Documento *</label>
+                  <div className="input-wrapper-pro">
+                    <FileText size={18} className="input-icon-pro" />
+                    <input
+                      id="prof-document"
+                      type="text"
+                      name="document_number"
+                      value={formData.document_number}
+                      onChange={handleChange}
+                      placeholder="1234567890"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="field-pro">
+                  <label htmlFor="prof-phone">Teléfono</label>
+                  <div className="input-wrapper-pro">
+                    <Phone size={18} className="input-icon-pro" />
+                    <input
+                      id="prof-phone"
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="300 123 4567"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="field-pro">
+                <label htmlFor="prof-email">Correo institucional *</label>
+                <div className="input-wrapper-pro">
+                  <Mail size={18} className="input-icon-pro" />
+                  <input
+                    id="prof-email"
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="tu.email@sena.edu.co"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="field-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="field-pro">
+                  <label htmlFor="prof-profession">Profesión *</label>
+                  <div className="input-wrapper-pro">
+                    <Briefcase size={18} className="input-icon-pro" />
+                    <select
+                      id="prof-profession"
+                      name="profession"
+                      value={formData.profession}
+                      onChange={handleChange}
+                      required
+                      style={{ flex: 1, border: 'none', background: 'transparent', padding: '0.875rem 0', fontSize: '0.95rem', color: '#1a1a1a', outline: 'none' }}
+                    >
+                      <option value="">Selecciona...</option>
+                      {PROFESSIONS.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="field-pro">
+                  <label htmlFor="prof-specialty">Especialidad</label>
+                  <div className="input-wrapper-pro">
+                    <select
+                      id="prof-specialty"
+                      name="specialty"
+                      value={formData.specialty}
+                      onChange={handleChange}
+                      style={{ flex: 1, border: 'none', background: 'transparent', padding: '0.875rem 0', fontSize: '0.95rem', color: '#1a1a1a', outline: 'none' }}
+                    >
+                      <option value="">Selecciona...</option>
+                      {getSpecialties().map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="field-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="field-pro">
+                  <label htmlFor="prof-password">Contraseña *</label>
+                  <div className="input-wrapper-pro">
+                    <Lock size={18} className="input-icon-pro" />
+                    <input
+                      id="prof-password"
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Mínimo 6 caracteres"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+
+                <div className="field-pro">
+                  <label htmlFor="prof-confirm">Confirmar *</label>
+                  <div className="input-wrapper-pro">
+                    <Lock size={18} className="input-icon-pro" />
+                    <input
+                      id="prof-confirm"
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Repite tu contraseña"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" className="btn-submit-pro" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <span className="loading-text-pro">
+                    <span className="spinner-pro" />
+                    Creando cuenta...
+                  </span>
+                ) : (
+                  <>
+                    Crear Cuenta Profesional
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="auth-footer-pro" style={{ marginTop: '1.5rem' }}>
+              <p>¿Ya tienes cuenta?</p>
+              <Link to="/login" className="auth-link-pro secondary">
+                Iniciar Sesión
+              </Link>
+            </div>
           </div>
-
-          <div className="field-row">
-            <div className="field">
-              <label htmlFor="prof-profession">Profesión *</label>
-              <select
-                id="prof-profession"
-                name="profession"
-                value={formData.profession}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Selecciona...</option>
-                {PROFESSIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field">
-              <label htmlFor="prof-specialty">Especialidad</label>
-              <select
-                id="prof-specialty"
-                name="specialty"
-                value={formData.specialty}
-                onChange={handleChange}
-              >
-                <option value="">Selecciona...</option>
-                {getSpecialties().map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="field-row">
-            <div className="field">
-              <label htmlFor="prof-password">Contraseña *</label>
-              <input
-                id="prof-password"
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                minLength={6}
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="prof-confirm">Confirmar contraseña *</label>
-              <input
-                id="prof-confirm"
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-
-          <button type="submit" className="btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? "Creando cuenta..." : "Crear Cuenta Profesional"}
-          </button>
-        </form>
-
-        <p className="auth-footer">
-          ¿Ya tienes cuenta?{" "}
-          <Link to="/login" className="auth-link">
-            Inicia sesión aquí
-          </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

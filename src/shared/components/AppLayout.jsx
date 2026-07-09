@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../providers/AuthProvider";
 import { getDependencyConfig } from "../../features/appointments/config/dependencies.config";
 import { UserProfile } from "./UserProfile";
+import { BottomNav } from "./BottomNav";
 import {
   LayoutDashboard,
   Calendar,
@@ -116,7 +117,10 @@ export function AppLayout({ children }) {
         </div>
       </aside>
 
-      <main className="app-main">{children}</main>
+      <main className="app-main">
+        {children}
+        <BottomNav onProfileClick={() => setShowProfile(true)} />
+      </main>
 
       {showProfile && <UserProfile onClose={() => setShowProfile(false)} />}
     </div>

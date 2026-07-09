@@ -16,20 +16,19 @@ export function useAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [status, setStatus] = useState(STATUS.IDLE);
   const [error, setError] = useState(null);
-  const { user, isAprendiz } = useAuth();
+  const { user, profile, isAprendiz } = useAuth();
 
   // FETCH: Obtener citas según el rol automáticamente
-  // Los profesionales ven TODAS las citas (acceso global)
+  // Aprendiz ve sus citas, profesionales ven las de su dependencia
   const fetchAppointments = useCallback(
     async (filters = {}) => {
       setStatus(STATUS.FETCHING);
       setError(null);
 
       try {
-        // RBAC: Aprendiz solo ve sus citas, profesionales ven todas
         const roleFilters = isAprendiz()
           ? { userId: user.id }
-          : {};
+          : { dependencyId: profile?.dependency_id };
 
         const data = await AppointmentRepository.fetch({
           ...roleFilters,
@@ -45,7 +44,7 @@ export function useAppointments() {
         setStatus(STATUS.IDLE);
       }
     },
-    [user, isAprendiz],
+    [user, profile, isAprendiz],
   );
 
   // FETCH BY DEPENDENCY: Obtener citas de una dependencia específica
@@ -86,15 +85,17 @@ export function useAppointments() {
         }
       }
 
-      // Verificar disponibilidad de horario
-      const isAvailable = await AppointmentRepository.checkAvailability(
+      // Verificar disponibilidad de horario (profesionales disponibles)
+      const availability = await AppointmentRepository.checkProfessionalAvailability(
         formData.dependency_id,
         formData.scheduled_date,
         formData.scheduled_time,
       );
 
-      if (!isAvailable) {
-        throw new Error("Este horario ya está ocupado. Selecciona otro.");
+      if (!availability.available) {
+        throw new Error(
+          "No hay profesionales disponibles en este horario. Selecciona otra fecha u hora.",
+        );
       }
 
       // Crear la cita
